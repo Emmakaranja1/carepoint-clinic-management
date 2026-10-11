@@ -1,0 +1,156 @@
+{
+  "info": {
+    "_postman_id": "carepoint-api-v1",
+    "name": "CarePoint API",
+    "description": "CarePoint backend API — local development collection.\n\nImport, set the collection variables (or use the defaults), then run requests in order. Session cookies (`cp_access`, `cp_refresh`) are stored automatically by Postman's cookie jar after Login.\n\nAll mutating requests must carry the header `X-Requested-With: XMLHttpRequest` (CSRF defense) — it is pre-set on each request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "patientEmail", "value": "patient.demo@carepoint.test" },
+    { "key": "patientPassword", "value": "correct-horse-9" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Ping",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/ping" },
+          "response": []
+        },
+        {
+          "name": "Health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/actuator/health" },
+          "response": []
+        },
+        {
+          "name": "Readiness",
+          "request": { "method": "GET", "url": "{{baseUrl}}/actuator/health/readiness" },
+          "response": []
+        },
+        {
+          "name": "Liveness",
+          "request": { "method": "GET", "url": "{{baseUrl}}/actuator/health/liveness" },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Requested-With", "value": "XMLHttpRequest" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\",\n  \"fullName\": \"Demo Patient\",\n  \"phone\": \"+254700000100\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "description": "Expected: 201 + {id, email, fullName, clinicRoles:{}}.\nRun twice to see 409 EMAIL_TAKEN — duplicate emails are rejected."
+          },
+          "response": []
+        },
+        {
+          "name": "Register — weak password (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Requested-With", "value": "XMLHttpRequest" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"weak@carepoint.test\",\n  \"password\": \"short\",\n  \"fullName\": \"Weak Pass\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "description": "Expected: 400 VALIDATION_FAILED with fields.password."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Requested-With", "value": "XMLHttpRequest" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Expected: 200 + user JSON; Set-Cookie: cp_access (15 min JWT) + cp_refresh (30 d, HttpOnly).\nPostman stores cookies automatically — Me / Refresh / Logout need no manual token handling."
+          },
+          "response": []
+        },
+        {
+          "name": "Login — wrong password (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Requested-With", "value": "XMLHttpRequest" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"wrong-password\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Expected: 401 INVALID_CREDENTIALS — same envelope whether the email or the password is wrong (no user enumeration)."
+          },
+          "response": []
+        },
+        {
+          "name": "Login — missing CSRF header (403)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Expected: 403 CSRF_HEADER_MISSING — mutating requests require X-Requested-With."
+          },
+          "response": []
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/auth/me",
+            "description": "Expected: 200 + current user (uses cp_access cookie). Without login: 401 UNAUTHENTICATED."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh session",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-Requested-With", "value": "XMLHttpRequest" }],
+            "url": "{{baseUrl}}/api/v1/auth/refresh",
+            "description": "Expected: 204 + rotated cp_access/cp_refresh cookies.\nRotation: the old refresh token dies — replaying it yields 401 and revokes the whole family (theft detection)."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-Requested-With", "value": "XMLHttpRequest" }],
+            "url": "{{baseUrl}}/api/v1/auth/logout",
+            "description": "Expected: 204; clears both cookies and revokes the refresh family server-side."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
