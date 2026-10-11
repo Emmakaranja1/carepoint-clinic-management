@@ -19,9 +19,15 @@ import com.carepoint.common.error.ApiException;
 import com.carepoint.common.error.ErrorCode;
 import com.carepoint.common.security.AuthCookies;
 import com.carepoint.common.security.CarepointPrincipal;
+import com.carepoint.identity.api.dto.ForgotPasswordRequest;
+import com.carepoint.identity.api.dto.GoogleLoginRequest;
 import com.carepoint.identity.api.dto.LoginRequest;
 import com.carepoint.identity.api.dto.RegisterRequest;
+import com.carepoint.identity.api.dto.RegisterResponse;
+import com.carepoint.identity.api.dto.ResendCodeRequest;
+import com.carepoint.identity.api.dto.ResetPasswordRequest;
 import com.carepoint.identity.api.dto.UserResponse;
+import com.carepoint.identity.api.dto.VerifyEmailRequest;
 import com.carepoint.identity.application.AuthService;
 import com.carepoint.identity.domain.User;
 import com.carepoint.identity.persistence.UserRepository;
@@ -41,19 +47,46 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest req) {
-        User user = auth.register(req.email(), req.password(), req.fullName(), req.phone());
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest req) {
+        User user = auth.register(
+                req.email(), req.password(), req.confirmPassword(), req.fullName(), req.phone());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new UserResponse(user.getId(), user.getEmail(), user.getFullName(), Map.of()));
+                .body(new RegisterResponse(user.getId(), user.getEmail(),
+                        "Registration successful — we've emailed you a verification code"));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<UserResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest req) {
+        return session(auth.verifyEmail(req.email(), req.code()));
+    }
+
+    @PostMapping("/resend-code")
+    public ResponseEntity<Void> resendCode(@Valid @RequestBody ResendCodeRequest req) {
+        String purpose = req.purpose() == null ? "VERIFY_EMAIL" : req.purpose();
+        auth.resendCode(req.email(), purpose);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
+        auth.forgotPassword(req.email());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
+        auth.resetPassword(req.email(), req.code(), req.password(), req.confirmPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<UserResponse> google(@Valid @RequestBody GoogleLoginRequest req) {
+        return session(auth.googleLogin(req.idToken()));
     }
 
     @PostMapping("/login")
     public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginRequest req) {
-        AuthService.AuthResult result = auth.login(req.email(), req.password());
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookies.accessCookie(result.accessToken()))
-                .header(HttpHeaders.SET_COOKIE, cookies.refreshCookie(result.refreshToken()))
-                .body(toResponse(result.user()));
+        return session(auth.login(req.email(), req.password()));
     }
 
     @PostMapping("/refresh")
@@ -81,6 +114,13 @@ public class AuthController {
         User user = users.findById(principal.userId())
                 .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED, "Authentication required"));
         return toResponse(user);
+    }
+
+    private ResponseEntity<UserResponse> session(AuthService.AuthResult result) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookies.accessCookie(result.accessToken()))
+                .header(HttpHeaders.SET_COOKIE, cookies.refreshCookie(result.refreshToken()))
+                .body(toResponse(result.user()));
     }
 
     private UserResponse toResponse(User user) {

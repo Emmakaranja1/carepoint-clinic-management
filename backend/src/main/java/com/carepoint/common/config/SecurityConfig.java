@@ -36,7 +36,7 @@ import com.carepoint.common.security.RateLimitFilter;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties(AuthProperties.class)
+@EnableConfigurationProperties({AuthProperties.class, com.carepoint.identity.application.OtpProperties.class})
 public class SecurityConfig {
 
     @Bean
@@ -45,11 +45,17 @@ public class SecurityConfig {
             JwtAuthFilter jwtAuthFilter,
             AuthProperties props,
             @Value("${carepoint.rate-limit.login-per-minute}") int loginLimit,
-            @Value("${carepoint.rate-limit.register-per-minute}") int registerLimit) throws Exception {
+            @Value("${carepoint.rate-limit.register-per-minute}") int registerLimit,
+            @Value("${carepoint.rate-limit.otp-per-minute}") int otpLimit) throws Exception {
 
         RateLimitFilter rateLimits = new RateLimitFilter(List.of(
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/login", loginLimit),
-                new RateLimitFilter.Rule("POST", "/api/v1/auth/register", registerLimit)));
+                new RateLimitFilter.Rule("POST", "/api/v1/auth/register", registerLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/auth/forgot-password", otpLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/auth/resend-code", otpLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/auth/verify-email", otpLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/auth/reset-password", otpLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/auth/google", otpLimit)));
 
         http
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -61,7 +67,12 @@ public class SecurityConfig {
                         "/api/v1/auth/register",
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
-                        "/api/v1/auth/logout")
+                        "/api/v1/auth/logout",
+                        "/api/v1/auth/verify-email",
+                        "/api/v1/auth/resend-code",
+                        "/api/v1/auth/forgot-password",
+                        "/api/v1/auth/reset-password",
+                        "/api/v1/auth/google")
                 .permitAll()
                 .anyRequest().authenticated())
             .exceptionHandling(e -> e

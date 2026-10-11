@@ -15,6 +15,18 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: none
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASS:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 
 server:
   port: 8080
@@ -34,6 +46,16 @@ carepoint:
   rate-limit:
     login-per-minute: ${RATE_LIMIT_LOGIN_PER_MIN:5}
     register-per-minute: ${RATE_LIMIT_REGISTER_PER_MIN:5}
+    otp-per-minute: ${RATE_LIMIT_OTP_PER_MIN:10}
+  otp:
+    ttl: ${OTP_TTL:2m}
+    max-attempts: ${OTP_MAX_ATTEMPTS:4}
+    max-sends: ${OTP_MAX_SENDS:4}
+    resend-cooldown: ${OTP_RESEND_COOLDOWN:104s}
+  mail:
+    provider: ${MAIL_PROVIDER:log}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
 
 management:
   endpoints:
