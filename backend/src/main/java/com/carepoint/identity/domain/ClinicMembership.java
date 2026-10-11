@@ -33,6 +33,23 @@ public class ClinicMembership {
     protected ClinicMembership() {
     }
 
+    public ClinicMembership(UUID clinicId, UUID userId, String role) {
+        this.id = UUID.randomUUID();
+        this.clinicId = clinicId;
+        this.userId = userId;
+        this.role = role;
+        this.status = "ACTIVE";
+        this.createdAt = Instant.now();
+    }
+
+    public void changeRole(String role) {
+        this.role = role;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     public UUID getId() {
         return id;
     }
