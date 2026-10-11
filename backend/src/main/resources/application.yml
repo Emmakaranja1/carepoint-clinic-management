@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: carepoint
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/carepoint}
+    username: ${DB_USER:carepoint}
+    password: ${DB_PASSWORD:carepoint_dev}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+
+server:
+  port: 8080
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

@@ -295,7 +295,7 @@ directory; switching to R2 is an env-var change, not a code change.
 
 | Variable | Purpose | Example |
 | --- | --- | --- |
-| `DB_URL` / `DB_USER` / `DB_PASSWORD` | Postgres connection | `jdbc:postgresql://localhost:5432/carepoint` |
+| `DB_URL` / `DB_USER` / `DB_PASSWORD` | Postgres connection | `jdbc:postgresql://localhost:5434/carepoint` |
 | `DB_POOL_MAX` | connection-pool ceiling | `10` |
 | `JWT_SIGNING_KEY` | token signing secret | `change-me-32+-chars` |
 | `CORS_ALLOWED_ORIGINS` | explicit origin allow-list | `http://localhost:3000` |
