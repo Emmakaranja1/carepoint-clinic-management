@@ -30,22 +30,22 @@ ON CONFLICT (slug) DO NOTHING;
 
 -- ---------- users (fictional) ----------
 
-INSERT INTO users (id, email, password_hash, full_name, phone, status) VALUES
+INSERT INTO users (id, email, password_hash, full_name, phone, status, email_verified) VALUES
     -- Sunrise staff
-    ('30000000-0000-4000-8000-000000000001', 'amara.njoroge@sunrise.carepoint.test',   '!dev-seed-no-login', 'Dr. Amara Njoroge',   '+254700000001', 'ACTIVE'),
-    ('30000000-0000-4000-8000-000000000002', 'brian.odhiambo@sunrise.carepoint.test',  '!dev-seed-no-login', 'Dr. Brian Odhiambo',  '+254700000002', 'ACTIVE'),
-    ('30000000-0000-4000-8000-000000000003', 'clara.wanjiru@sunrise.carepoint.test',   '!dev-seed-no-login', 'Dr. Clara Wanjiru',   '+254700000003', 'ACTIVE'),
-    ('30000000-0000-4000-8000-000000000004', 'dennis.mutua@sunrise.carepoint.test',    '!dev-seed-no-login', 'Dennis Mutua',        '+254700000004', 'ACTIVE'),
-    ('30000000-0000-4000-8000-000000000005', 'faith.akinyi@sunrise.carepoint.test',    '!dev-seed-no-login', 'Faith Akinyi',        '+254700000005', 'ACTIVE'),
+    ('30000000-0000-4000-8000-000000000001', 'amara.njoroge@sunrise.carepoint.test',   '!dev-seed-no-login', 'Dr. Amara Njoroge',   '+254700000001', 'ACTIVE', true),
+    ('30000000-0000-4000-8000-000000000002', 'brian.odhiambo@sunrise.carepoint.test',  '!dev-seed-no-login', 'Dr. Brian Odhiambo',  '+254700000002', 'ACTIVE', true),
+    ('30000000-0000-4000-8000-000000000003', 'clara.wanjiru@sunrise.carepoint.test',   '!dev-seed-no-login', 'Dr. Clara Wanjiru',   '+254700000003', 'ACTIVE', true),
+    ('30000000-0000-4000-8000-000000000004', 'dennis.mutua@sunrise.carepoint.test',    '!dev-seed-no-login', 'Dennis Mutua',        '+254700000004', 'ACTIVE', true),
+    ('30000000-0000-4000-8000-000000000005', 'faith.akinyi@sunrise.carepoint.test',    '!dev-seed-no-login', 'Faith Akinyi',        '+254700000005', 'ACTIVE', true),
     -- Harbourview staff
-    ('30000000-0000-4000-8000-000000000006', 'naledi.dlamini@harbour.carepoint.test',  '!dev-seed-no-login', 'Dr. Naledi Dlamini',  '+27710000006', 'ACTIVE'),
-    ('30000000-0000-4000-8000-000000000007', 'pieter.botha@harbour.carepoint.test',    '!dev-seed-no-login', 'Dr. Pieter Botha',    '+27710000007', 'ACTIVE'),
-    ('30000000-0000-4000-8000-000000000008', 'zanele.mkhize@harbour.carepoint.test',   '!dev-seed-no-login', 'Dr. Zanele Mkhize',   '+27710000008', 'ACTIVE'),
-    ('30000000-0000-4000-8000-000000000009', 'thandi.ndlovu@harbour.carepoint.test',   '!dev-seed-no-login', 'Thandi Ndlovu',       '+27710000009', 'ACTIVE'),
-    ('30000000-0000-4000-8000-00000000000a', 'sipho.ngcobo@harbour.carepoint.test',    '!dev-seed-no-login', 'Sipho Ngcobo',        '+27710000010', 'ACTIVE'),
+    ('30000000-0000-4000-8000-000000000006', 'naledi.dlamini@harbour.carepoint.test',  '!dev-seed-no-login', 'Dr. Naledi Dlamini',  '+27710000006', 'ACTIVE', true),
+    ('30000000-0000-4000-8000-000000000007', 'pieter.botha@harbour.carepoint.test',    '!dev-seed-no-login', 'Dr. Pieter Botha',    '+27710000007', 'ACTIVE', true),
+    ('30000000-0000-4000-8000-000000000008', 'zanele.mkhize@harbour.carepoint.test',   '!dev-seed-no-login', 'Dr. Zanele Mkhize',   '+27710000008', 'ACTIVE', true),
+    ('30000000-0000-4000-8000-000000000009', 'thandi.ndlovu@harbour.carepoint.test',   '!dev-seed-no-login', 'Thandi Ndlovu',       '+27710000009', 'ACTIVE', true),
+    ('30000000-0000-4000-8000-00000000000a', 'sipho.ngcobo@harbour.carepoint.test',    '!dev-seed-no-login', 'Sipho Ngcobo',        '+27710000010', 'ACTIVE', true),
     -- patients
-    ('30000000-0000-4000-8000-00000000000b', 'demo.patient@carepoint.test',            '!dev-seed-no-login', 'Demo Patient',        '+254700000100', 'ACTIVE'),
-    ('30000000-0000-4000-8000-00000000000c', 'walkin.guest@carepoint.test',            NULL,                 'Walk-in Guest',       NULL,            'GUEST')
+    ('30000000-0000-4000-8000-00000000000b', 'demo.patient@carepoint.test',            '!dev-seed-no-login', 'Demo Patient',        '+254700000100', 'ACTIVE', true),
+    ('30000000-0000-4000-8000-00000000000c', 'walkin.guest@carepoint.test',            NULL,                 'Walk-in Guest',       NULL,            'GUEST',  false)
 ON CONFLICT (email) DO NOTHING;
 
 -- ---------- memberships ----------

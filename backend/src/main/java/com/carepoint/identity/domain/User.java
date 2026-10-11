@@ -29,6 +29,12 @@ public class User {
     @Column(nullable = false)
     private String status;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
+
+    @Column(name = "auth_provider", nullable = false)
+    private String authProvider;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -38,15 +44,28 @@ public class User {
     protected User() {
     }
 
-    public User(String email, String passwordHash, String fullName, String phone) {
+    private User(String email, String fullName, String phone,
+                 String passwordHash, String provider, boolean verified) {
         this.id = UUID.randomUUID();
         this.email = email;
-        this.passwordHash = passwordHash;
         this.fullName = fullName;
         this.phone = phone;
+        this.passwordHash = passwordHash;
+        this.authProvider = provider;
+        this.emailVerified = verified;
         this.status = "ACTIVE";
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
+    }
+
+    /** Local password user — starts unverified until the email OTP passes. */
+    public static User localUser(String email, String passwordHash, String fullName, String phone) {
+        return new User(email, fullName, phone, passwordHash, "LOCAL", false);
+    }
+
+    /** OAuth user — no password; verified only if the provider attested the email. */
+    public static User oauthUser(String email, String fullName, String provider, boolean emailVerified) {
+        return new User(email, fullName, null, null, provider, emailVerified);
     }
 
     public UUID getId() {
@@ -75,5 +94,21 @@ public class User {
 
     public boolean isActive() {
         return "ACTIVE".equals(status);
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void markEmailVerified() {
+        this.emailVerified = true;
+    }
+
+    public String getAuthProvider() {
+        return authProvider;
+    }
+
+    public void changePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }
