@@ -18,7 +18,7 @@ jobs:
           cache: maven
       - name: Verify
         working-directory: backend
-        run: ./mvnw -B verify
+        run: mvn -B verify
 
   changes:
     name: Detect workspace changes

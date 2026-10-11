@@ -1,0 +1,662 @@
+{
+  "info": {
+    "_postman_id": "carepoint-api-v1",
+    "name": "CarePoint API",
+    "description": "CarePoint backend API \u2014 local development collection.\n\nImport, set the collection variables (or use the defaults), then run requests in order. Session cookies (`cp_access`, `cp_refresh`) are stored automatically by Postman's cookie jar after a successful Login / Verify email / Google sign-in.\n\nAll mutating requests must carry the header `X-Requested-With: XMLHttpRequest` (CSRF defense) \u2014 it is pre-set on each request.\n\nEMAIL CODES: with the default `MAIL_PROVIDER=log`, OTP codes are printed to the Spring Boot console \u2014 look for `MAIL(log-provider)`. Paste the 6-digit code into the `{{otpCode}}` variable (or edit the request body). Codes are valid 2 minutes, allow 4 wrong tries, and only 4 sends are permitted before a cooldown.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "patientEmail",
+      "value": "patient.demo@carepoint.test"
+    },
+    {
+      "key": "patientPassword",
+      "value": "Correct-Horse-9"
+    },
+    {
+      "key": "otpCode",
+      "value": "paste-6-digit-code-here"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Ping",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/ping"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/health"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/health/readiness"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/health/liveness"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth \u2014 register & verify",
+      "item": [
+        {
+          "name": "Register patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\",\n  \"confirmPassword\": \"{{patientPassword}}\",\n  \"fullName\": \"Demo Patient\",\n  \"phone\": \"+254700000100\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "description": "Expected: 201 + {id, email, message}. A 6-digit verification code is 'sent' \u2014 with MAIL_PROVIDER=log it appears in the backend console.\nRun twice to see 409 EMAIL_TAKEN."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"registration message returned\", function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.message).to.match(/verification code/i);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register \u2014 weak password (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"weak@carepoint.test\",\n  \"password\": \"short\",\n  \"confirmPassword\": \"short\",\n  \"fullName\": \"Weak Pass\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "description": "Expected: 400 VALIDATION_FAILED with fields.password listing the unmet rules (\u22658 chars, upper, lower, digit) \u2014 renderable as a UI checklist."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test(\"error code is VALIDATION_FAILED\", function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.code).to.eql(\"VALIDATION_FAILED\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register \u2014 confirm mismatch (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"mismatch@carepoint.test\",\n  \"password\": \"{{patientPassword}}\",\n  \"confirmPassword\": \"Different-1\",\n  \"fullName\": \"Mismatch\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register",
+            "description": "Expected: 400 VALIDATION_FAILED with fields.confirmPassword = \"Passwords do not match\"."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test(\"error code is VALIDATION_FAILED\", function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.code).to.eql(\"VALIDATION_FAILED\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify email (OTP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"code\": \"{{otpCode}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/verify-email",
+            "description": "Expected: 200 + user JSON + session cookies (logged in immediately).\nCopy the 6-digit code from the backend console into {{otpCode}} \u2014 valid 2 minutes, 4 wrong tries kill it.\nWrong/expired code: 400 OTP_INVALID."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resend verification code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/resend-code",
+            "description": "Expected: 204 always (unknown emails get the same answer \u2014 no enumeration).\nAfter 4 total sends, further sends within the cooldown window return 429 RATE_LIMITED."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login \u2014 before verification (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Expected: 403 EMAIL_NOT_VERIFIED until Verify email succeeds \u2014 run it right after Register."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "pm.test(\"error code is EMAIL_NOT_VERIFIED\", function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.code).to.eql(\"EMAIL_NOT_VERIFIED\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth \u2014 password reset",
+      "item": [
+        {
+          "name": "Forgot password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/forgot-password",
+            "description": "Expected: 204 always \u2014 the response never reveals whether the email exists.\nIf the account exists, a PASSWORD_RESET code is mailed (backend console under MAIL_PROVIDER=log)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reset password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"code\": \"{{otpCode}}\",\n  \"password\": \"New-Horse-42\",\n  \"confirmPassword\": \"New-Horse-42\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/reset-password",
+            "description": "Expected: 204. Paste the reset code into {{otpCode}} first.\nSide effects: all existing sessions are revoked \u2014 log in again with the new password.\nWrong code: 400 OTP_INVALID. Policy/confirm failures: 400 VALIDATION_FAILED."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth \u2014 session",
+      "item": [
+        {
+          "name": "Google sign-in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"paste-google-id-token-here\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/google",
+            "description": "Expected: 200 + user JSON + session cookies. Creates the account on first sign-in.\nRequires GOOGLE_CLIENT_ID configured; the idToken comes from a real Google sign-in on the frontend.\nInvalid token: 401 GOOGLE_TOKEN_INVALID."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Expected: 200 + user JSON; Set-Cookie: cp_access (15 min JWT) + cp_refresh (30 d, HttpOnly).\nPostman stores cookies automatically \u2014 Me / Refresh / Logout need no manual token handling."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login \u2014 wrong password (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"wrong-password\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Expected: 401 INVALID_CREDENTIALS \u2014 same envelope whether the email or the password is wrong (no user enumeration)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"error code is INVALID_CREDENTIALS\", function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.code).to.eql(\"INVALID_CREDENTIALS\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login \u2014 missing CSRF header (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Expected: 403 CSRF_HEADER_MISSING \u2014 mutating requests require X-Requested-With."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "pm.test(\"error code is CSRF_HEADER_MISSING\", function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body.code).to.eql(\"CSRF_HEADER_MISSING\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/auth/me",
+            "description": "Expected: 200 + current user (uses cp_access cookie). Without login: 401 UNAUTHENTICATED."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/refresh",
+            "description": "Expected: 204 + rotated cp_access/cp_refresh cookies.\nRotation: the old refresh token dies \u2014 replaying it yields 401 and revokes the whole family (theft detection)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/logout",
+            "description": "Expected: 204; clears both cookies and revokes the refresh family server-side."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
