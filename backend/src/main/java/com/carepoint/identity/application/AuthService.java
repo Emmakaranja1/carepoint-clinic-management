@@ -145,6 +145,7 @@ public class AuthService {
                 .orElseThrow(() -> new ApiException(ErrorCode.OTP_INVALID, "Invalid or expired code"));
 
         user.changePassword(passwords.encode(password));
+        user.markEmailVerified(); // a valid emailed code proves inbox ownership
         refreshTokenRepo.revokeAllForUser(user.getId()); // every live session dies
     }
 

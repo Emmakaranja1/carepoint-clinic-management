@@ -657,6 +657,247 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Clinics & staff",
+      "item": [
+        {
+          "name": "Create clinic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Dental Practice\",\n  \"timezone\": \"Africa/Nairobi\",\n  \"address\": {\"line1\": \"12 Kenyatta Ave\", \"city\": \"Nairobi\"}\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clinics",
+            "description": "Expected: 201 + {id, name, slug, timezone, message}. The verified caller becomes CLINIC_ADMIN.\nSaves clinicId for the requests below. Requires a verified login first."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"clinicId saved for follow-ups\", function () {",
+                  "    var b = pm.response.json();",
+                  "    pm.collectionVariables.set('clinicId', b.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "My memberships",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/clinics/mine",
+            "description": "Expected: 200 + [{membershipId, clinicId, clinicName, role}] \u2014 every clinic where you hold staff role."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List clinic staff",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff",
+            "description": "Expected: 200 + staff array (CLINIC_ADMIN/RECEPTIONIST only).\nRun Create clinic first \u2014 uses {{clinicId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"first member is admin\", function () {",
+                  "    var s = pm.response.json();",
+                  "    pm.expect(s.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Invite staff (doctor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"doctor.demo@carepoint.test\",\n  \"fullName\": \"Dr Demo\",\n  \"role\": \"DOCTOR\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff",
+            "description": "Expected: 201 + StaffView. New emails get a set-password OTP by mail; existing users gain the membership.\nRoles: DOCTOR | RECEPTIONIST | CLINIC_ADMIN. Saves membershipId for PATCH below."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"membershipId saved\", function () {",
+                  "    var b = pm.response.json();",
+                  "    pm.collectionVariables.set('membershipId', b.membershipId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Invite staff \u2014 patient token (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nobody@carepoint.test\",\n  \"fullName\": \"N\",\n  \"role\": \"DOCTOR\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff",
+            "description": "Expected: 403 ACCESS_DENIED when sent with a patient-only session; 404 NOT_FOUND for staff of a different clinic."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403 or 404\", function () {",
+                  "    pm.expect([403,404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Update staff role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"RECEPTIONIST\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff/{{membershipId}}",
+            "description": "Expected: 200 + updated StaffView. Send role and/or status (ACTIVE|DISABLED).\nYou cannot modify your own membership; the clinic always keeps one active admin."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Disable staff member",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DISABLED\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff/{{membershipId}}",
+            "description": "Expected: 200 with status=DISABLED. Disabled members lose access on their next request."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
     }
   ]
 }

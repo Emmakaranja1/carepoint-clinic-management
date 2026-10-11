@@ -47,6 +47,15 @@ public class OtpService {
      */
     @Transactional
     public void send(String email, UUID userId, String purpose) {
+        send(email, userId, purpose, null);
+    }
+
+    /**
+     * Same as {@link #send(String, UUID, String)} but prepends a lead-in line
+     * to the mail body (e.g. a staff-invite intro before the code).
+     */
+    @Transactional
+    public void send(String email, UUID userId, String purpose, String leadIn) {
         Instant now = Instant.now();
         int sendCount = codes.findTopByEmailAndPurposeOrderByCreatedAtDesc(email, purpose)
                 .map(latest -> nextSendCount(latest, now))
@@ -56,7 +65,7 @@ public class OtpService {
         OtpCode otp = new OtpCode(email, userId, purpose, hash(code),
                 now.plus(props.ttl()), sendCount);
         codes.save(otp);
-        mail.send(email, subject(purpose), body(code, purpose));
+        mail.send(email, subject(purpose), body(code, purpose, leadIn));
     }
 
     private int nextSendCount(OtpCode latest, Instant now) {
@@ -114,11 +123,12 @@ public class OtpService {
                 : "CarePoint — password reset code";
     }
 
-    private String body(String code, String purpose) {
+    private String body(String code, String purpose, String leadIn) {
         String action = "VERIFY_EMAIL".equals(purpose)
                 ? "verify your email address"
-                : "reset your password";
-        return "Your CarePoint code to " + action + " is: " + code
+                : "set or reset your password";
+        return (leadIn == null ? "" : leadIn + "\n\n")
+                + "Your CarePoint code to " + action + " is: " + code
                 + "\n\nIt expires in " + props.ttl().toMinutes() + " minutes."
                 + "\nIf you did not request this, ignore this email.";
     }
