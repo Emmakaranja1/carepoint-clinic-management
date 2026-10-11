@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: carepoint-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-carepoint}
+      POSTGRES_USER: ${DB_USER:-carepoint}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-carepoint_dev}
+    ports:
+      - "${DB_PORT:-5434}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional: run the backend containerized instead of via ./mvnw.
+  # docker compose -f deploy/docker-compose.yml --profile full up -d
+  backend:
+    profiles: ["full"]
+    build:
+      context: ../backend
+    container_name: carepoint-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-carepoint}
+      DB_USER: ${DB_USER:-carepoint}
+      DB_PASSWORD: ${DB_PASSWORD:-carepoint_dev}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
