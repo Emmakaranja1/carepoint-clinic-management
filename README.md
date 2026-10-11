@@ -278,15 +278,21 @@ sequenceDiagram
 **Prerequisites:** Docker + Docker Compose · JDK 21 · Node 20+
 
 ```bash
-git clone <repo> && cd carepoint
-cp .env.example .env                  # fill in local values
-docker compose up -d postgres         # database only, or `up` for everything
+git clone <repo> && cd carepoint-clinic-management
+cp .env.example .env                                     # fill in local values
+docker compose -f deploy/docker-compose.yml up -d postgres
 
-cd backend && ./mvnw spring-boot:run  # API on :8080
-cd frontend && npm ci && npm run dev  # UI on :3000
-
-./scripts/seed.sh                     # fictional clinics, doctors, schedules
+cd backend
+./mvnw spring-boot:run                                   # API on :8080, schema only
+./mvnw spring-boot:run -Dspring-boot.run.profiles=seed   # + fictional seed data
 ```
+
+The `seed` profile additionally applies `db/seed` — a repeatable Flyway
+migration creating 2 fictional clinics, 6 doctors, schedules, a demo
+patient, a guest patient and media-object rows. Without the profile only
+schema migrations run. A ~90 k-appointment synthetic dataset for query
+measurement lives in `db/perf/seed_perf.sql` and is loaded on demand via
+psql — never automatically.
 
 Media works fully offline — `STORAGE_PROVIDER=local` writes to a local
 directory; switching to R2 is an env-var change, not a code change.
@@ -366,9 +372,10 @@ configuration review first.
 
 ## 15. Roadmap and known limitations
 
-**Delivery plan:** scaffold → schema + seed → auth → discovery →
-availability → booking → schedules + media → receptionist desk →
-reporting → hardening. Small PRs, each with acceptance criteria and tests.
+**Delivered:** scaffold + CI (M0) · core schema, fictional seed and the
+concurrency test harness (M1). **Next:** auth → discovery → availability →
+booking → schedules + media → receptionist desk → reporting → hardening.
+Small PRs, each with acceptance criteria and tests.
 
 **Known limitations (deliberate):**
 
