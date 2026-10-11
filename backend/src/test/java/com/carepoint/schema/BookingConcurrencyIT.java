@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -97,10 +97,13 @@ class BookingConcurrencyIT {
                         UUID.randomUUID(), f.clinicId, f.doctorId, f.patientId,
                         Timestamp.from(start), Timestamp.from(end), f.staffUserId);
                 return true;
-            } catch (DataIntegrityViolationException e) {
-                // the exclusion constraint name must be the cause — not some
-                // unrelated integrity failure
-                assertThat(rootMessage(e)).contains("no_overlapping_bookings");
+            } catch (DataAccessException e) {
+                // the constraint serializes writers two ways: exclusion
+                // violation (23P01 → the constraint name appears in the
+                // error) or a deadlock (40P01) while checking it — both
+                // mean "lost the slot"; the service maps both to SLOT_TAKEN
+                assertThat(rootMessage(e))
+                        .containsAnyOf("no_overlapping_bookings", "deadlock");
                 return false;
             }
         };
