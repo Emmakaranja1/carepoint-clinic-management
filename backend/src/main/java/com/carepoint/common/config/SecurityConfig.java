@@ -6,6 +6,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -73,6 +74,15 @@ public class SecurityConfig {
                         "/api/v1/auth/forgot-password",
                         "/api/v1/auth/reset-password",
                         "/api/v1/auth/google")
+                .permitAll()
+                // public discovery reads — GET only, writes stay authenticated
+                .requestMatchers(HttpMethod.GET,
+                        "/api/v1/clinics",
+                        "/api/v1/clinics/*",
+                        "/api/v1/clinics/*/doctors",
+                        "/api/v1/clinics/*/doctors/*",
+                        "/api/v1/clinics/*/specialties",
+                        "/api/v1/specialties")
                 .permitAll()
                 .anyRequest().authenticated())
             .exceptionHandling(e -> e

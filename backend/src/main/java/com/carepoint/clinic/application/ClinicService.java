@@ -79,6 +79,9 @@ public class ClinicService {
 
     /** The caller's memberships — used by the staff UI to pick a clinic. */
     public List<MembershipView> myClinics(CarepointPrincipal principal) {
+        if (principal == null) {
+            throw new ApiException(ErrorCode.UNAUTHENTICATED, "Authentication required");
+        }
         return memberships.findByUserIdAndStatus(principal.userId(), "ACTIVE").stream()
                 .map(m -> new MembershipView(m.getId(), m.getClinicId(),
                         clinics.findById(m.getClinicId()).map(Clinic::getName).orElse("—"),
