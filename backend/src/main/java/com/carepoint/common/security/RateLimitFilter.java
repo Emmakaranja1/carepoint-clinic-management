@@ -28,6 +28,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final long WINDOW_MS = 60_000;
 
     private final Map<String, Rule> rules;
+    private final java.util.List<Rule> wildcardRules;
     private final Map<String, Window> windows = new ConcurrentHashMap<>();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -39,8 +40,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     public RateLimitFilter(java.util.List<Rule> rules) {
         this.rules = new ConcurrentHashMap<>();
+        this.wildcardRules = new java.util.ArrayList<>();
         for (Rule r : rules) {
-            this.rules.put(r.method() + " " + r.path(), r);
+            if (r.path().contains("*")) {
+                this.wildcardRules.add(r);
+            } else {
+                this.rules.put(r.method() + " " + r.path(), r);
+            }
         }
     }
 
@@ -50,7 +56,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain chain) throws ServletException, IOException {
 
-        Rule rule = rules.get(request.getMethod() + " " + request.getRequestURI());
+        String uri = request.getRequestURI();
+        Rule rule = rules.get(request.getMethod() + " " + uri);
+        if (rule == null) {
+            rule = matchWildcard(request.getMethod(), uri);
+        }
         if (rule == null) {
             chain.doFilter(request, response);
             return;
@@ -71,6 +81,31 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
         chain.doFilter(request, response);
+    }
+
+    /** '*' in a rule path matches exactly one URI path segment. */
+    private Rule matchWildcard(String method, String uri) {
+        String[] parts = uri.split("/");
+        for (Rule r : wildcardRules) {
+            if (!r.method().equals(method)) {
+                continue;
+            }
+            String[] segs = r.path().split("/");
+            if (segs.length != parts.length) {
+                continue;
+            }
+            boolean match = true;
+            for (int i = 0; i < segs.length; i++) {
+                if (!segs[i].equals("*") && !segs[i].equals(parts[i])) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return r;
+            }
+        }
+        return null;
     }
 
     private String clientIp(HttpServletRequest request) {
