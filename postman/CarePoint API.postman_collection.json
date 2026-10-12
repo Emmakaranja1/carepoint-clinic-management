@@ -898,6 +898,286 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Discovery & doctors",
+      "item": [
+        {
+          "name": "List clinics (public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clinics?name=&page=0&size=20",
+              "query": [
+                {
+                  "key": "name",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clinics"
+              ]
+            },
+            "description": "Expected: 200 + Page {content, totalElements, ...}. No auth needed.\n?name= filters by name prefix. Saves first clinic as {{clinicId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"page shape\", function () {",
+                  "    var b = pm.response.json();",
+                  "    pm.expect(b.content).to.be.an('array');",
+                  "    if (b.content.length) pm.collectionVariables.set('clinicId', b.content[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Clinic detail (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}",
+            "description": "Expected: 200 + clinic object; 404 NOT_FOUND for unknown/disabled."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "All specialties (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/specialties",
+            "description": "Expected: 200 + [{id, name}] \u2014 the global catalog. Saves first id as {{specialtyId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"specialtyId saved\", function () {",
+                  "    var b = pm.response.json();",
+                  "    if (b.length) pm.collectionVariables.set('specialtyId', b[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List clinic doctors (public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/doctors?specialtyId=&q=&page=0&size=20",
+              "query": [
+                {
+                  "key": "specialtyId",
+                  "value": ""
+                },
+                {
+                  "key": "q",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clinics",
+                "{{clinicId}}",
+                "doctors"
+              ]
+            },
+            "description": "Expected: 200 + Page of {id, fullName, specialty, consultMinutes}.\nFilters: specialtyId + q (name prefix). Saves {{doctorId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"doctorId saved\", function () {",
+                  "    var b = pm.response.json();",
+                  "    if (b.content.length) pm.collectionVariables.set('doctorId', b.content[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Doctor detail (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/doctors/{{doctorId}}",
+            "description": "Expected: 200 + {id, fullName, specialty, bio, consultMinutes}; 404 cross-clinic."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Clinic specialties facet (public)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/specialties",
+            "description": "Expected: 200 + only the specialties this clinic's doctors offer."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Create doctor profile (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"membershipId\": \"{{membershipId}}\",\n  \"specialtyId\": \"{{specialtyId}}\",\n  \"bio\": \"Fictional demo doctor\",\n  \"consultMinutes\": 20\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/doctors",
+            "description": "Expected: 201 + profile. CLINIC_ADMIN only; membership must be DOCTOR or CLINIC_ADMIN role.\nRun 'Invite staff' first so {{membershipId}} is set."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"doctorId saved\", function () {",
+                  "    var b = pm.response.json();",
+                  "    pm.collectionVariables.set('doctorId', b.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Update doctor profile (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Updated bio\",\n  \"consultMinutes\": 30\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/doctors/{{doctorId}}",
+            "description": "Expected: 200 + updated profile. CLINIC_ADMIN only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
     }
   ]
 }
