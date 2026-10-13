@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "carepoint-api-v1",
     "name": "CarePoint API",
-    "description": "CarePoint backend API \u2014 local development collection.\n\nImport, set the collection variables (or use the defaults), then run requests in order. Session cookies (`cp_access`, `cp_refresh`) are stored automatically by Postman's cookie jar after a successful Login / Verify email / Google sign-in.\n\nAll mutating requests must carry the header `X-Requested-With: XMLHttpRequest` (CSRF defense) \u2014 it is pre-set on each request.\n\nEMAIL CODES: with the default `MAIL_PROVIDER=log`, OTP codes are printed to the Spring Boot console \u2014 look for `MAIL(log-provider)`. Paste the 6-digit code into the `{{otpCode}}` variable (or edit the request body). Codes are valid 2 minutes, allow 4 wrong tries, and only 4 sends are permitted before a cooldown.",
+    "description": "CarePoint backend API — local development collection.\n\nImport, set the collection variables (or use the defaults), then run requests in order. Session cookies (`cp_access`, `cp_refresh`) are stored automatically by Postman's cookie jar after a successful Login / Verify email / Google sign-in.\n\nAll mutating requests must carry the header `X-Requested-With: XMLHttpRequest` (CSRF defense) — it is pre-set on each request.\n\nEMAIL CODES: with the default `MAIL_PROVIDER=log`, OTP codes are printed to the Spring Boot console — look for `MAIL(log-provider)`. Paste the 6-digit code into the `{{otpCode}}` variable (or edit the request body). Codes are valid 2 minutes, allow 4 wrong tries, and only 4 sends are permitted before a cooldown.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -114,7 +114,7 @@
       ]
     },
     {
-      "name": "Auth \u2014 register & verify",
+      "name": "Auth — register & verify",
       "item": [
         {
           "name": "Register patient",
@@ -135,7 +135,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\",\n  \"confirmPassword\": \"{{patientPassword}}\",\n  \"fullName\": \"Demo Patient\",\n  \"phone\": \"+254700000100\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/register",
-            "description": "Expected: 201 + {id, email, message}. A 6-digit verification code is 'sent' \u2014 with MAIL_PROVIDER=log it appears in the backend console.\nRun twice to see 409 EMAIL_TAKEN."
+            "description": "Expected: 201 + {id, email, message}. A 6-digit verification code is 'sent' — with MAIL_PROVIDER=log it appears in the backend console.\nRun twice to see 409 EMAIL_TAKEN."
           },
           "response": [],
           "event": [
@@ -157,7 +157,7 @@
           ]
         },
         {
-          "name": "Register \u2014 weak password (400)",
+          "name": "Register — weak password (400)",
           "request": {
             "method": "POST",
             "header": [
@@ -175,7 +175,7 @@
               "raw": "{\n  \"email\": \"weak@carepoint.test\",\n  \"password\": \"short\",\n  \"confirmPassword\": \"short\",\n  \"fullName\": \"Weak Pass\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/register",
-            "description": "Expected: 400 VALIDATION_FAILED with fields.password listing the unmet rules (\u22658 chars, upper, lower, digit) \u2014 renderable as a UI checklist."
+            "description": "Expected: 400 VALIDATION_FAILED with fields.password listing the unmet rules (≥8 chars, upper, lower, digit) — renderable as a UI checklist."
           },
           "response": [],
           "event": [
@@ -197,7 +197,7 @@
           ]
         },
         {
-          "name": "Register \u2014 confirm mismatch (400)",
+          "name": "Register — confirm mismatch (400)",
           "request": {
             "method": "POST",
             "header": [
@@ -255,7 +255,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"code\": \"{{otpCode}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/verify-email",
-            "description": "Expected: 200 + user JSON + session cookies (logged in immediately).\nCopy the 6-digit code from the backend console into {{otpCode}} \u2014 valid 2 minutes, 4 wrong tries kill it.\nWrong/expired code: 400 OTP_INVALID."
+            "description": "Expected: 200 + user JSON + session cookies (logged in immediately).\nCopy the 6-digit code from the backend console into {{otpCode}} — valid 2 minutes, 4 wrong tries kill it.\nWrong/expired code: 400 OTP_INVALID."
           },
           "response": [],
           "event": [
@@ -291,7 +291,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/resend-code",
-            "description": "Expected: 204 always (unknown emails get the same answer \u2014 no enumeration).\nAfter 4 total sends, further sends within the cooldown window return 429 RATE_LIMITED."
+            "description": "Expected: 204 always (unknown emails get the same answer — no enumeration).\nAfter 4 total sends, further sends within the cooldown window return 429 RATE_LIMITED."
           },
           "response": [],
           "event": [
@@ -309,7 +309,7 @@
           ]
         },
         {
-          "name": "Login \u2014 before verification (403)",
+          "name": "Login — before verification (403)",
           "request": {
             "method": "POST",
             "header": [
@@ -327,7 +327,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/login",
-            "description": "Expected: 403 EMAIL_NOT_VERIFIED until Verify email succeeds \u2014 run it right after Register."
+            "description": "Expected: 403 EMAIL_NOT_VERIFIED until Verify email succeeds — run it right after Register."
           },
           "response": [],
           "event": [
@@ -351,7 +351,7 @@
       ]
     },
     {
-      "name": "Auth \u2014 password reset",
+      "name": "Auth — password reset",
       "item": [
         {
           "name": "Forgot password",
@@ -372,7 +372,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/forgot-password",
-            "description": "Expected: 204 always \u2014 the response never reveals whether the email exists.\nIf the account exists, a PASSWORD_RESET code is mailed (backend console under MAIL_PROVIDER=log)."
+            "description": "Expected: 204 always — the response never reveals whether the email exists.\nIf the account exists, a PASSWORD_RESET code is mailed (backend console under MAIL_PROVIDER=log)."
           },
           "response": [],
           "event": [
@@ -408,7 +408,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"code\": \"{{otpCode}}\",\n  \"password\": \"New-Horse-42\",\n  \"confirmPassword\": \"New-Horse-42\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/reset-password",
-            "description": "Expected: 204. Paste the reset code into {{otpCode}} first.\nSide effects: all existing sessions are revoked \u2014 log in again with the new password.\nWrong code: 400 OTP_INVALID. Policy/confirm failures: 400 VALIDATION_FAILED."
+            "description": "Expected: 204. Paste the reset code into {{otpCode}} first.\nSide effects: all existing sessions are revoked — log in again with the new password.\nWrong code: 400 OTP_INVALID. Policy/confirm failures: 400 VALIDATION_FAILED."
           },
           "response": [],
           "event": [
@@ -428,7 +428,7 @@
       ]
     },
     {
-      "name": "Auth \u2014 session",
+      "name": "Auth — session",
       "item": [
         {
           "name": "Google sign-in",
@@ -485,7 +485,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/login",
-            "description": "Expected: 200 + user JSON; Set-Cookie: cp_access (15 min JWT) + cp_refresh (30 d, HttpOnly).\nPostman stores cookies automatically \u2014 Me / Refresh / Logout need no manual token handling."
+            "description": "Expected: 200 + user JSON; Set-Cookie: cp_access (15 min JWT) + cp_refresh (30 d, HttpOnly).\nPostman stores cookies automatically — Me / Refresh / Logout need no manual token handling."
           },
           "response": [],
           "event": [
@@ -503,7 +503,7 @@
           ]
         },
         {
-          "name": "Login \u2014 wrong password (401)",
+          "name": "Login — wrong password (401)",
           "request": {
             "method": "POST",
             "header": [
@@ -521,7 +521,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"wrong-password\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/login",
-            "description": "Expected: 401 INVALID_CREDENTIALS \u2014 same envelope whether the email or the password is wrong (no user enumeration)."
+            "description": "Expected: 401 INVALID_CREDENTIALS — same envelope whether the email or the password is wrong (no user enumeration)."
           },
           "response": [],
           "event": [
@@ -543,7 +543,7 @@
           ]
         },
         {
-          "name": "Login \u2014 missing CSRF header (403)",
+          "name": "Login — missing CSRF header (403)",
           "request": {
             "method": "POST",
             "header": [
@@ -557,7 +557,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/login",
-            "description": "Expected: 403 CSRF_HEADER_MISSING \u2014 mutating requests require X-Requested-With."
+            "description": "Expected: 403 CSRF_HEADER_MISSING — mutating requests require X-Requested-With."
           },
           "response": [],
           "event": [
@@ -611,7 +611,7 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/auth/refresh",
-            "description": "Expected: 204 + rotated cp_access/cp_refresh cookies.\nRotation: the old refresh token dies \u2014 replaying it yields 401 and revokes the whole family (theft detection)."
+            "description": "Expected: 204 + rotated cp_access/cp_refresh cookies.\nRotation: the old refresh token dies — replaying it yields 401 and revokes the whole family (theft detection)."
           },
           "response": [],
           "event": [
@@ -706,7 +706,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/clinics/mine",
-            "description": "Expected: 200 + [{membershipId, clinicId, clinicName, role}] \u2014 every clinic where you hold staff role."
+            "description": "Expected: 200 + [{membershipId, clinicId, clinicName, role}] — every clinic where you hold staff role."
           },
           "event": [
             {
@@ -728,7 +728,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff",
-            "description": "Expected: 200 + staff array (CLINIC_ADMIN/RECEPTIONIST only).\nRun Create clinic first \u2014 uses {{clinicId}}."
+            "description": "Expected: 200 + staff array (CLINIC_ADMIN/RECEPTIONIST only).\nRun Create clinic first — uses {{clinicId}}."
           },
           "event": [
             {
@@ -790,7 +790,7 @@
           "response": []
         },
         {
-          "name": "Invite staff \u2014 patient token (403)",
+          "name": "Invite staff — patient token (403)",
           "request": {
             "method": "POST",
             "header": [
@@ -980,7 +980,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/specialties",
-            "description": "Expected: 200 + [{id, name}] \u2014 the global catalog. Saves first id as {{specialtyId}}."
+            "description": "Expected: 200 + [{id, name}] — the global catalog. Saves first id as {{specialtyId}}."
           },
           "event": [
             {
@@ -1211,7 +1211,7 @@
                 "availability"
               ]
             },
-            "description": "Expected: 200 + [{start, end}] UTC slots \u2014 schedule minus time-off minus booked.\nfrom/to: ISO dates, max 31 days, not past. Rate-limited 60/min/IP."
+            "description": "Expected: 200 + [{start, end}] UTC slots — schedule minus time-off minus booked.\nfrom/to: ISO dates, max 31 days, not past. Rate-limited 60/min/IP."
           },
           "event": [
             {
@@ -1247,7 +1247,7 @@
               "raw": "{\n  \"windows\": [\n    {\"dayOfWeek\": 0, \"startTime\": \"09:00\", \"endTime\": \"12:00\", \"slotMinutes\": 30},\n    {\"dayOfWeek\": 2, \"startTime\": \"13:00\", \"endTime\": \"17:00\", \"slotMinutes\": 30}\n  ]\n}"
             },
             "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/doctors/{{doctorId}}/schedule",
-            "description": "Expected: 200 + saved windows. Replaces the whole weekly template.\nWho: CLINIC_ADMIN, RECEPTIONIST, or the doctor for their own profile.\ndayOfWeek: 0=Mon \u2026 6=Sun. slotMinutes: 10/15/20/30/45/60. No same-day overlaps."
+            "description": "Expected: 200 + saved windows. Replaces the whole weekly template.\nWho: CLINIC_ADMIN, RECEPTIONIST, or the doctor for their own profile.\ndayOfWeek: 0=Mon … 6=Sun. slotMinutes: 10/15/20/30/45/60. No same-day overlaps."
           },
           "event": [
             {
@@ -1378,6 +1378,426 @@
               }
             }
           ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Booking",
+      "item": [
+        {
+          "name": "Book appointment",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = new Date();",
+                  "d.setUTCDate(d.getUTCDate() + ((8 - d.getUTCDay()) % 7 || 7)); // next Monday (UTC)",
+                  "const day = d.toISOString().slice(0,10);",
+                  "pm.collectionVariables.set('slotStart', day + 'T09:00:00Z');",
+                  "pm.collectionVariables.set('slotEnd', day + 'T09:30:00Z');",
+                  "pm.collectionVariables.set('slotStart2', day + 'T10:00:00Z');",
+                  "pm.collectionVariables.set('slotEnd2', day + 'T10:30:00Z');",
+                  "pm.collectionVariables.set('slotStartOff', day + 'T09:15:00Z');",
+                  "pm.collectionVariables.set('slotEndOff', day + 'T09:45:00Z');",
+                  "pm.collectionVariables.set('availabilityDate', day);",
+                  "if (!pm.collectionVariables.get('bookingIdemKey')) {",
+                  "    pm.collectionVariables.set('bookingIdemKey', pm.variables.replaceIn('{{$guid}}'));",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+                  "const b = pm.response.json();",
+                  "pm.test('status BOOKED', function () { pm.expect(b.status).to.eql('BOOKED'); });",
+                  "pm.collectionVariables.set('appointmentId', b.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{bookingIdemKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clinicId\": \"{{clinicId}}\",\n  \"doctorId\": \"{{doctorId}}\",\n  \"start\": \"{{slotStart}}\",\n  \"end\": \"{{slotEnd}}\",\n  \"reason\": \"Postman demo booking\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments"
+              ]
+            },
+            "description": "Books {{slotStart}}-{{slotEnd}} UTC for {{doctorId}}.\nRequires: clinicId + doctorId set (Clinics & staff + Discovery folders), and a doctor schedule covering next Monday 09:00-09:30 UTC (run 'Set doctor schedule' first).\nExpected: 201 + appointment; Idempotency-Key UUID is auto-generated once and reused by the replay request."
+          },
+          "response": []
+        },
+        {
+          "name": "Replay booking (same key)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201 (replay)', function () { pm.response.to.have.status(201); });",
+                  "pm.test('same appointment id', function () {",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('appointmentId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{bookingIdemKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clinicId\": \"{{clinicId}}\",\n  \"doctorId\": \"{{doctorId}}\",\n  \"start\": \"{{slotStart}}\",\n  \"end\": \"{{slotEnd}}\",\n  \"reason\": \"Postman demo booking\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments"
+              ]
+            },
+            "description": "Same Idempotency-Key + identical payload returns the original booking, no duplicate.\nExpected: 201 with the same id."
+          },
+          "response": []
+        },
+        {
+          "name": "Book — key reuse, different slot (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409 IDEMPOTENCY_KEY_REUSED', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    pm.expect(pm.response.json().code).to.eql('IDEMPOTENCY_KEY_REUSED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{bookingIdemKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clinicId\": \"{{clinicId}}\",\n  \"doctorId\": \"{{doctorId}}\",\n  \"start\": \"{{slotStart2}}\",\n  \"end\": \"{{slotEnd2}}\",\n  \"reason\": \"different payload, same key\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments"
+              ]
+            },
+            "description": "Same key + different payload → 409 IDEMPOTENCY_KEY_REUSED.\nRun 'Book appointment' first so the key is stored."
+          },
+          "response": []
+        },
+        {
+          "name": "Book — off-grid slot (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 409 INVALID_SLOT', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "    pm.expect(pm.response.json().code).to.eql('INVALID_SLOT');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clinicId\": \"{{clinicId}}\",\n  \"doctorId\": \"{{doctorId}}\",\n  \"start\": \"{{slotStartOff}}\",\n  \"end\": \"{{slotEndOff}}\",\n  \"reason\": \"not on the doctor grid\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments"
+              ]
+            },
+            "description": "09:15-09:45 is not a schedule-grid slot → 409 INVALID_SLOT.\nAdjust times if your schedule uses different slotMinutes."
+          },
+          "response": []
+        },
+        {
+          "name": "List my appointments (upcoming)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('array of appointments', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments/mine?when=upcoming",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments",
+                "mine"
+              ],
+              "query": [
+                {
+                  "key": "when",
+                  "value": "upcoming"
+                }
+              ]
+            },
+            "description": "Patient's own future BOOKED appointments across clinics. when=upcoming|past."
+          },
+          "response": []
+        },
+        {
+          "name": "List my appointments (past)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments/mine?when=past",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments",
+                "mine"
+              ],
+              "query": [
+                {
+                  "key": "when",
+                  "value": "past"
+                }
+              ]
+            },
+            "description": "Cancelled/completed/past appointments for the signed-in patient."
+          },
+          "response": []
+        },
+        {
+          "name": "Get appointment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('id matches', function () {",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('appointmentId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments/{{appointmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments",
+                "{{appointmentId}}"
+              ]
+            },
+            "description": "Owner-only: another patient's appointment id returns 404, never 403."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel appointment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('status CANCELLED', function () { pm.expect(pm.response.json().status).to.eql('CANCELLED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments/{{appointmentId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments",
+                "{{appointmentId}}",
+                "cancel"
+              ]
+            },
+            "description": "Cancels the caller's own appointment. 409 CANCELLATION_WINDOW_PASSED inside the clinic cutoff (default 24h before start)."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel again (idempotent)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('still CANCELLED', function () { pm.expect(pm.response.json().status).to.eql('CANCELLED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/appointments/{{appointmentId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "appointments",
+                "{{appointmentId}}",
+                "cancel"
+              ]
+            },
+            "description": "Re-cancelling returns current state rather than an error."
+          },
           "response": []
         }
       ]
