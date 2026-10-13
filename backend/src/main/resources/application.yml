@@ -48,6 +48,7 @@ carepoint:
     register-per-minute: ${RATE_LIMIT_REGISTER_PER_MIN:5}
     otp-per-minute: ${RATE_LIMIT_OTP_PER_MIN:10}
     availability-per-minute: ${RATE_LIMIT_AVAILABILITY_PER_MIN:60}
+    booking-per-minute: ${RATE_LIMIT_BOOKING_PER_MIN:10}
   otp:
     ttl: ${OTP_TTL:2m}
     max-attempts: ${OTP_MAX_ATTEMPTS:4}

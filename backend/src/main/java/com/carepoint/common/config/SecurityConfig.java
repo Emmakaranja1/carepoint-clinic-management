@@ -48,7 +48,8 @@ public class SecurityConfig {
             @Value("${carepoint.rate-limit.login-per-minute}") int loginLimit,
             @Value("${carepoint.rate-limit.register-per-minute}") int registerLimit,
             @Value("${carepoint.rate-limit.otp-per-minute}") int otpLimit,
-            @Value("${carepoint.rate-limit.availability-per-minute}") int availabilityLimit) throws Exception {
+            @Value("${carepoint.rate-limit.availability-per-minute}") int availabilityLimit,
+            @Value("${carepoint.rate-limit.booking-per-minute}") int bookingLimit) throws Exception {
 
         RateLimitFilter rateLimits = new RateLimitFilter(List.of(
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/login", loginLimit),
@@ -58,6 +59,7 @@ public class SecurityConfig {
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/verify-email", otpLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/reset-password", otpLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/google", otpLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/appointments", bookingLimit),
                 new RateLimitFilter.Rule("GET", "/api/v1/clinics/*/doctors/*/availability",
                         availabilityLimit)));
 
