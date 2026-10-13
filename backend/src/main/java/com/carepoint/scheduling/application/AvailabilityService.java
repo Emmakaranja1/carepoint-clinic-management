@@ -74,9 +74,16 @@ public class AvailabilityService {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Request validation failed",
                     Map.of("to", "Range is limited to " + MAX_RANGE_DAYS + " days"));
         }
+        // The clinic's bookable window clips the effective range — slots
+        // beyond lookahead are neither displayed nor bookable.
+        LocalDate lastBookable = today.plusDays(clinic.getSlotLookaheadDays());
+        LocalDate effectiveTo = to.isAfter(lastBookable) ? lastBookable : to;
+        if (effectiveTo.isBefore(from)) {
+            return List.of();
+        }
 
         Instant rangeStart = from.atStartOfDay(tz).toInstant();
-        Instant rangeEnd = to.plusDays(1).atStartOfDay(tz).toInstant();
+        Instant rangeEnd = effectiveTo.plusDays(1).atStartOfDay(tz).toInstant();
 
         List<DoctorSchedule> windows = schedules.findByDoctorId(doctorId);
         List<Range> busy = new ArrayList<>();
@@ -90,7 +97,7 @@ public class AvailabilityService {
 
         Instant now = Instant.now();
         List<Slot> slots = new ArrayList<>();
-        for (LocalDate day = from; !day.isAfter(to); day = day.plusDays(1)) {
+        for (LocalDate day = from; !day.isAfter(effectiveTo); day = day.plusDays(1)) {
             int dow = day.getDayOfWeek().getValue() - 1; // 0=Monday per docs/07
             for (DoctorSchedule s : windows) {
                 if (s.getDayOfWeek() != dow
