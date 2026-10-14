@@ -3,6 +3,8 @@ package com.carepoint.media.application;
 import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -127,6 +129,30 @@ public class MediaService {
                 storage.presignPut(key, contentType, byteSize, PUT_TTL);
         return new MintedUpload(row.getId(), put.url(), put.headers(),
                 put.expiresAt(), storage.publicUrl(key));
+    }
+
+    /**
+     * Public lookup for read enrichment (discovery DTOs): ownerId →
+     * publicUrl for the newest ACTIVE media of a purpose. One bounded IN
+     * query — callers pass a page of owner ids, never loop per row.
+     */
+    @Transactional(readOnly = true)
+    public Map<UUID, String> publicUrlsByPurpose(String purpose,
+                                               Collection<UUID> ownerIds) {
+        if (ownerIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, MediaObject> latest = new HashMap<>();
+        for (MediaObject m : media.findByPurposeAndStatusAndOwnerIdIn(
+                purpose, "ACTIVE", ownerIds)) {
+            if (m.getOwnerId() != null) {
+                latest.merge(m.getOwnerId(), m,
+                        (a, b) -> b.getCreatedAt().isAfter(a.getCreatedAt()) ? b : a);
+            }
+        }
+        Map<UUID, String> urls = new HashMap<>();
+        latest.forEach((id, m) -> urls.put(id, storage.publicUrl(m.getObjectKey())));
+        return urls;
     }
 
     /**

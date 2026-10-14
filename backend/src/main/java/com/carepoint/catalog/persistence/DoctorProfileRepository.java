@@ -23,7 +23,7 @@ public interface DoctorProfileRepository extends JpaRepository<DoctorProfile, UU
      * Row = profile + doctor name + specialty name.
      */
     @Query("""
-            SELECT new com.carepoint.catalog.application.CatalogService$DoctorSummary(
+            SELECT new com.carepoint.catalog.application.CatalogService$DoctorRow(
                 d.id, u.fullName, s.name, d.consultMinutes)
             FROM DoctorProfile d
             JOIN ClinicMembership m ON m.id = d.membershipId
@@ -34,13 +34,13 @@ public interface DoctorProfileRepository extends JpaRepository<DoctorProfile, UU
               AND LOWER(u.fullName) LIKE LOWER(CONCAT(CAST(:q AS string), '%'))
             ORDER BY u.fullName, d.id
             """)
-    Page<CatalogService.DoctorSummary> searchInClinic(@Param("clinicId") UUID clinicId,
-                                                      @Param("specialtyId") UUID specialtyId,
-                                                      @Param("q") String q,
-                                                      Pageable pageable);
+    Page<CatalogService.DoctorRow> searchInClinic(@Param("clinicId") UUID clinicId,
+                                                  @Param("specialtyId") UUID specialtyId,
+                                                  @Param("q") String q,
+                                                  Pageable pageable);
 
     @Query("""
-            SELECT new com.carepoint.catalog.application.CatalogService$DoctorDetail(
+            SELECT new com.carepoint.catalog.application.CatalogService$DoctorDetailRow(
                 d.id, u.fullName, s.name, d.bio, d.consultMinutes)
             FROM DoctorProfile d
             JOIN ClinicMembership m ON m.id = d.membershipId
@@ -48,6 +48,6 @@ public interface DoctorProfileRepository extends JpaRepository<DoctorProfile, UU
             JOIN Specialty s ON s.id = d.specialtyId
             WHERE d.id = :doctorId AND d.clinicId = :clinicId AND m.status = 'ACTIVE'
             """)
-    Optional<CatalogService.DoctorDetail> detailInClinic(@Param("clinicId") UUID clinicId,
-                                                       @Param("doctorId") UUID doctorId);
+    Optional<CatalogService.DoctorDetailRow> detailInClinic(@Param("clinicId") UUID clinicId,
+                                                          @Param("doctorId") UUID doctorId);
 }
