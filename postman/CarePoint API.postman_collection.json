@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "carepoint-api-v1",
     "name": "CarePoint API",
-    "description": "CarePoint backend API — local development collection.\n\nImport, set the collection variables (or use the defaults), then run requests in order. Session cookies (`cp_access`, `cp_refresh`) are stored automatically by Postman's cookie jar after a successful Login / Verify email / Google sign-in.\n\nAll mutating requests must carry the header `X-Requested-With: XMLHttpRequest` (CSRF defense) — it is pre-set on each request.\n\nEMAIL CODES: with the default `MAIL_PROVIDER=log`, OTP codes are printed to the Spring Boot console — look for `MAIL(log-provider)`. Paste the 6-digit code into the `{{otpCode}}` variable (or edit the request body). Codes are valid 2 minutes, allow 4 wrong tries, and only 4 sends are permitted before a cooldown.",
+    "description": "CarePoint backend API \u2014 local development collection.\n\nImport, set the collection variables (or use the defaults), then run requests in order. Session cookies (`cp_access`, `cp_refresh`) are stored automatically by Postman's cookie jar after a successful Login / Verify email / Google sign-in.\n\nAll mutating requests must carry the header `X-Requested-With: XMLHttpRequest` (CSRF defense) \u2014 it is pre-set on each request.\n\nEMAIL CODES: with the default `MAIL_PROVIDER=log`, OTP codes are printed to the Spring Boot console \u2014 look for `MAIL(log-provider)`. Paste the 6-digit code into the `{{otpCode}}` variable (or edit the request body). Codes are valid 2 minutes, allow 4 wrong tries, and only 4 sends are permitted before a cooldown.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -114,7 +114,7 @@
       ]
     },
     {
-      "name": "Auth — register & verify",
+      "name": "Auth \u2014 register & verify",
       "item": [
         {
           "name": "Register patient",
@@ -135,7 +135,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\",\n  \"confirmPassword\": \"{{patientPassword}}\",\n  \"fullName\": \"Demo Patient\",\n  \"phone\": \"+254700000100\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/register",
-            "description": "Expected: 201 + {id, email, message}. A 6-digit verification code is 'sent' — with MAIL_PROVIDER=log it appears in the backend console.\nRun twice to see 409 EMAIL_TAKEN."
+            "description": "Expected: 201 + {id, email, message}. A 6-digit verification code is 'sent' \u2014 with MAIL_PROVIDER=log it appears in the backend console.\nRun twice to see 409 EMAIL_TAKEN."
           },
           "response": [],
           "event": [
@@ -157,7 +157,7 @@
           ]
         },
         {
-          "name": "Register — weak password (400)",
+          "name": "Register \u2014 weak password (400)",
           "request": {
             "method": "POST",
             "header": [
@@ -175,7 +175,7 @@
               "raw": "{\n  \"email\": \"weak@carepoint.test\",\n  \"password\": \"short\",\n  \"confirmPassword\": \"short\",\n  \"fullName\": \"Weak Pass\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/register",
-            "description": "Expected: 400 VALIDATION_FAILED with fields.password listing the unmet rules (≥8 chars, upper, lower, digit) — renderable as a UI checklist."
+            "description": "Expected: 400 VALIDATION_FAILED with fields.password listing the unmet rules (\u22658 chars, upper, lower, digit) \u2014 renderable as a UI checklist."
           },
           "response": [],
           "event": [
@@ -197,7 +197,7 @@
           ]
         },
         {
-          "name": "Register — confirm mismatch (400)",
+          "name": "Register \u2014 confirm mismatch (400)",
           "request": {
             "method": "POST",
             "header": [
@@ -255,7 +255,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"code\": \"{{otpCode}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/verify-email",
-            "description": "Expected: 200 + user JSON + session cookies (logged in immediately).\nCopy the 6-digit code from the backend console into {{otpCode}} — valid 2 minutes, 4 wrong tries kill it.\nWrong/expired code: 400 OTP_INVALID."
+            "description": "Expected: 200 + user JSON + session cookies (logged in immediately).\nCopy the 6-digit code from the backend console into {{otpCode}} \u2014 valid 2 minutes, 4 wrong tries kill it.\nWrong/expired code: 400 OTP_INVALID."
           },
           "response": [],
           "event": [
@@ -291,7 +291,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/resend-code",
-            "description": "Expected: 204 always (unknown emails get the same answer — no enumeration).\nAfter 4 total sends, further sends within the cooldown window return 429 RATE_LIMITED."
+            "description": "Expected: 204 always (unknown emails get the same answer \u2014 no enumeration).\nAfter 4 total sends, further sends within the cooldown window return 429 RATE_LIMITED."
           },
           "response": [],
           "event": [
@@ -309,7 +309,7 @@
           ]
         },
         {
-          "name": "Login — before verification (403)",
+          "name": "Login \u2014 before verification (403)",
           "request": {
             "method": "POST",
             "header": [
@@ -327,7 +327,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/login",
-            "description": "Expected: 403 EMAIL_NOT_VERIFIED until Verify email succeeds — run it right after Register."
+            "description": "Expected: 403 EMAIL_NOT_VERIFIED until Verify email succeeds \u2014 run it right after Register."
           },
           "response": [],
           "event": [
@@ -351,7 +351,7 @@
       ]
     },
     {
-      "name": "Auth — password reset",
+      "name": "Auth \u2014 password reset",
       "item": [
         {
           "name": "Forgot password",
@@ -372,7 +372,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/forgot-password",
-            "description": "Expected: 204 always — the response never reveals whether the email exists.\nIf the account exists, a PASSWORD_RESET code is mailed (backend console under MAIL_PROVIDER=log)."
+            "description": "Expected: 204 always \u2014 the response never reveals whether the email exists.\nIf the account exists, a PASSWORD_RESET code is mailed (backend console under MAIL_PROVIDER=log)."
           },
           "response": [],
           "event": [
@@ -408,7 +408,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"code\": \"{{otpCode}}\",\n  \"password\": \"New-Horse-42\",\n  \"confirmPassword\": \"New-Horse-42\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/reset-password",
-            "description": "Expected: 204. Paste the reset code into {{otpCode}} first.\nSide effects: all existing sessions are revoked — log in again with the new password.\nWrong code: 400 OTP_INVALID. Policy/confirm failures: 400 VALIDATION_FAILED."
+            "description": "Expected: 204. Paste the reset code into {{otpCode}} first.\nSide effects: all existing sessions are revoked \u2014 log in again with the new password.\nWrong code: 400 OTP_INVALID. Policy/confirm failures: 400 VALIDATION_FAILED."
           },
           "response": [],
           "event": [
@@ -428,7 +428,7 @@
       ]
     },
     {
-      "name": "Auth — session",
+      "name": "Auth \u2014 session",
       "item": [
         {
           "name": "Google sign-in",
@@ -485,7 +485,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/login",
-            "description": "Expected: 200 + user JSON; Set-Cookie: cp_access (15 min JWT) + cp_refresh (30 d, HttpOnly).\nPostman stores cookies automatically — Me / Refresh / Logout need no manual token handling."
+            "description": "Expected: 200 + user JSON; Set-Cookie: cp_access (15 min JWT) + cp_refresh (30 d, HttpOnly).\nPostman stores cookies automatically \u2014 Me / Refresh / Logout need no manual token handling."
           },
           "response": [],
           "event": [
@@ -503,7 +503,7 @@
           ]
         },
         {
-          "name": "Login — wrong password (401)",
+          "name": "Login \u2014 wrong password (401)",
           "request": {
             "method": "POST",
             "header": [
@@ -521,7 +521,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"wrong-password\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/login",
-            "description": "Expected: 401 INVALID_CREDENTIALS — same envelope whether the email or the password is wrong (no user enumeration)."
+            "description": "Expected: 401 INVALID_CREDENTIALS \u2014 same envelope whether the email or the password is wrong (no user enumeration)."
           },
           "response": [],
           "event": [
@@ -543,7 +543,7 @@
           ]
         },
         {
-          "name": "Login — missing CSRF header (403)",
+          "name": "Login \u2014 missing CSRF header (403)",
           "request": {
             "method": "POST",
             "header": [
@@ -557,7 +557,7 @@
               "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/auth/login",
-            "description": "Expected: 403 CSRF_HEADER_MISSING — mutating requests require X-Requested-With."
+            "description": "Expected: 403 CSRF_HEADER_MISSING \u2014 mutating requests require X-Requested-With."
           },
           "response": [],
           "event": [
@@ -611,7 +611,7 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/auth/refresh",
-            "description": "Expected: 204 + rotated cp_access/cp_refresh cookies.\nRotation: the old refresh token dies — replaying it yields 401 and revokes the whole family (theft detection)."
+            "description": "Expected: 204 + rotated cp_access/cp_refresh cookies.\nRotation: the old refresh token dies \u2014 replaying it yields 401 and revokes the whole family (theft detection)."
           },
           "response": [],
           "event": [
@@ -706,7 +706,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/clinics/mine",
-            "description": "Expected: 200 + [{membershipId, clinicId, clinicName, role}] — every clinic where you hold staff role."
+            "description": "Expected: 200 + [{membershipId, clinicId, clinicName, role}] \u2014 every clinic where you hold staff role."
           },
           "event": [
             {
@@ -728,7 +728,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff",
-            "description": "Expected: 200 + staff array (CLINIC_ADMIN/RECEPTIONIST only).\nRun Create clinic first — uses {{clinicId}}."
+            "description": "Expected: 200 + staff array (CLINIC_ADMIN/RECEPTIONIST only).\nRun Create clinic first \u2014 uses {{clinicId}}."
           },
           "event": [
             {
@@ -790,7 +790,7 @@
           "response": []
         },
         {
-          "name": "Invite staff — patient token (403)",
+          "name": "Invite staff \u2014 patient token (403)",
           "request": {
             "method": "POST",
             "header": [
@@ -980,7 +980,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/specialties",
-            "description": "Expected: 200 + [{id, name}] — the global catalog. Saves first id as {{specialtyId}}."
+            "description": "Expected: 200 + [{id, name}] \u2014 the global catalog. Saves first id as {{specialtyId}}."
           },
           "event": [
             {
@@ -1211,7 +1211,7 @@
                 "availability"
               ]
             },
-            "description": "Expected: 200 + [{start, end}] UTC slots — schedule minus time-off minus booked.\nfrom/to: ISO dates, max 31 days, not past. Rate-limited 60/min/IP."
+            "description": "Expected: 200 + [{start, end}] UTC slots \u2014 schedule minus time-off minus booked.\nfrom/to: ISO dates, max 31 days, not past. Rate-limited 60/min/IP."
           },
           "event": [
             {
@@ -1247,7 +1247,7 @@
               "raw": "{\n  \"windows\": [\n    {\"dayOfWeek\": 0, \"startTime\": \"09:00\", \"endTime\": \"12:00\", \"slotMinutes\": 30},\n    {\"dayOfWeek\": 2, \"startTime\": \"13:00\", \"endTime\": \"17:00\", \"slotMinutes\": 30}\n  ]\n}"
             },
             "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/doctors/{{doctorId}}/schedule",
-            "description": "Expected: 200 + saved windows. Replaces the whole weekly template.\nWho: CLINIC_ADMIN, RECEPTIONIST, or the doctor for their own profile.\ndayOfWeek: 0=Mon … 6=Sun. slotMinutes: 10/15/20/30/45/60. No same-day overlaps."
+            "description": "Expected: 200 + saved windows. Replaces the whole weekly template.\nWho: CLINIC_ADMIN, RECEPTIONIST, or the doctor for their own profile.\ndayOfWeek: 0=Mon \u2026 6=Sun. slotMinutes: 10/15/20/30/45/60. No same-day overlaps."
           },
           "event": [
             {
@@ -1511,7 +1511,7 @@
           "response": []
         },
         {
-          "name": "Book — key reuse, different slot (409)",
+          "name": "Book \u2014 key reuse, different slot (409)",
           "event": [
             {
               "listen": "test",
@@ -1558,12 +1558,12 @@
                 "appointments"
               ]
             },
-            "description": "Same key + different payload → 409 IDEMPOTENCY_KEY_REUSED.\nRun 'Book appointment' first so the key is stored."
+            "description": "Same key + different payload \u2192 409 IDEMPOTENCY_KEY_REUSED.\nRun 'Book appointment' first so the key is stored."
           },
           "response": []
         },
         {
-          "name": "Book — off-grid slot (409)",
+          "name": "Book \u2014 off-grid slot (409)",
           "event": [
             {
               "listen": "test",
@@ -1606,7 +1606,7 @@
                 "appointments"
               ]
             },
-            "description": "09:15-09:45 is not a schedule-grid slot → 409 INVALID_SLOT.\nAdjust times if your schedule uses different slotMinutes."
+            "description": "09:15-09:45 is not a schedule-grid slot \u2192 409 INVALID_SLOT.\nAdjust times if your schedule uses different slotMinutes."
           },
           "response": []
         },
@@ -1848,12 +1848,12 @@
                 }
               ]
             },
-            "description": "RECEPTIONIST or CLINIC_ADMIN only. Defaults to today when from/to are omitted; optional doctorId + status filters.\nSign in as the invited receptionist (see Clinics & staff → Invite staff) before running."
+            "description": "RECEPTIONIST or CLINIC_ADMIN only. Defaults to today when from/to are omitted; optional doctorId + status filters.\nSign in as the invited receptionist (see Clinics & staff \u2192 Invite staff) before running."
           },
           "response": []
         },
         {
-          "name": "Book on behalf — guest patient",
+          "name": "Book on behalf \u2014 guest patient",
           "event": [
             {
               "listen": "prerequest",
@@ -1914,7 +1914,7 @@
                 "appointments"
               ]
             },
-            "description": "Books for a patient without an account — a claimable GUEST record is created (they register with the same email to claim it).\nUse patientId instead of patient{} to book for an existing user. Needs a schedule covering {{slotStart}} (run 'Set doctor schedule')."
+            "description": "Books for a patient without an account \u2014 a claimable GUEST record is created (they register with the same email to claim it).\nUse patientId instead of patient{} to book for an existing user. Needs a schedule covering {{slotStart}} (run 'Set doctor schedule')."
           },
           "response": []
         },
@@ -1987,7 +1987,7 @@
           "response": []
         },
         {
-          "name": "Update status — cancel",
+          "name": "Update status \u2014 cancel",
           "event": [
             {
               "listen": "test",
@@ -2031,7 +2031,7 @@
                 "{{deskAppointmentId}}"
               ]
             },
-            "description": "BOOKED → CANCELLED|COMPLETED|NO_SHOW. Staff bypass the patient cancellation cutoff; COMPLETED/NO_SHOW require the slot to have started."
+            "description": "BOOKED \u2192 CANCELLED|COMPLETED|NO_SHOW. Staff bypass the patient cancellation cutoff; COMPLETED/NO_SHOW require the slot to have started."
           },
           "response": []
         },
@@ -2088,7 +2088,7 @@
                 }
               ]
             },
-            "description": "The signed-in doctor's own appointments for ?date= (defaults to today).\nRequires a session for the user who owns {{doctorId}}'s membership — sign in as the invited doctor."
+            "description": "The signed-in doctor's own appointments for ?date= (defaults to today).\nRequires a session for the user who owns {{doctorId}}'s membership \u2014 sign in as the invited doctor."
           },
           "response": []
         }
@@ -2144,6 +2144,165 @@
             },
             "description": "RECEPTIONIST or CLINIC_ADMIN. Aggregates only: status counts, per-doctor booked/completed/no-show, scheduled-slot capacity and utilization, no-show rate. Defaults to last 30 days; range capped at 12 months."
           },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Media",
+      "item": [
+        {
+          "name": "Initiate upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purpose\": \"DOCTOR_PHOTO\",\n  \"ownerType\": \"DOCTOR_PROFILE\",\n  \"ownerId\": \"{{doctorId}}\",\n  \"fileName\": \"doctor.png\",\n  \"contentType\": \"image/png\",\n  \"byteSize\": 1048576\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/media/uploads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clinics",
+                "{{clinicId}}",
+                "media",
+                "uploads"
+              ]
+            },
+            "description": "RECEPTIONIST or CLINIC_ADMIN. Mints a bounded presigned PUT (10 min TTL). purpose: DOCTOR_PHOTO|CLINIC_LOGO|DEMO_IMAGE; DOCTOR_PHOTO requires ownerType DOCTOR_PROFILE + ownerId of a profile in this clinic; CLINIC_LOGO requires ownerType CLINIC + ownerId = this clinic. contentType allowlist: image/jpeg, image/png, image/webp, image/avif. byteSize is the ceiling \u2014 the PUT rejects larger bodies. Rate-limited 20/min/IP."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('mediaId', body.id);",
+                  "pm.collectionVariables.set('uploadUrl', body.uploadUrl);",
+                  "pm.collectionVariables.set('mediaPublicUrl', body.publicUrl);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Upload bytes (presigned PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "image/png"
+              }
+            ],
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": "",
+                "contentType": "image/png"
+              }
+            },
+            "url": {
+              "raw": "{{uploadUrl}}",
+              "host": [
+                "{{uploadUrl}}"
+              ]
+            },
+            "description": "The HMAC-signed URL from Initiate upload is the capability \u2014 no cookies, no X-Requested-With header. In Postman: Body \u2192 binary \u2192 select a PNG under the declared byteSize. Content-Type must match the minted type (image/png here). Tampering with exp/max/sig \u2192 403. Uploads land PENDING and are not publicly reachable until confirmed."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('accepted', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Confirm upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/media/{{mediaId}}/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "media",
+                "{{mediaId}}",
+                "confirm"
+              ]
+            },
+            "description": "Staff of the owning clinic. Verifies the stored object server-side: existence, \u22645 MB, magic bytes matching the declared type, pixel dimensions \u22644096. On success status \u2192 ACTIVE and publicUrl becomes reachable. Failure deletes the object; the row stays PENDING for the 24h janitor. Idempotent on success."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('confirmed', () => pm.response.to.have.status(200));",
+                  "pm.test('active', () => pm.response.json().status === 'ACTIVE');"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Fetch public image",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mediaPublicUrl}}",
+              "host": [
+                "{{mediaPublicUrl}}"
+              ]
+            },
+            "description": "Anonymous. Serves the confirmed object (immutable, year-long cache). Unconfirmed or failed uploads return 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('public', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
           "response": []
         }
       ]

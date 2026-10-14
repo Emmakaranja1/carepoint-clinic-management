@@ -25,6 +25,7 @@ next-env.d.ts
 
 # --- Local storage & test artifacts ---
 var/media/
+backend/var/
 docs/perf/
 playwright-report/
 test-results/

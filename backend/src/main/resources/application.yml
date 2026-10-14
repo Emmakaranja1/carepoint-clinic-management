@@ -49,6 +49,7 @@ carepoint:
     otp-per-minute: ${RATE_LIMIT_OTP_PER_MIN:10}
     availability-per-minute: ${RATE_LIMIT_AVAILABILITY_PER_MIN:60}
     booking-per-minute: ${RATE_LIMIT_BOOKING_PER_MIN:10}
+    media-upload-per-minute: ${RATE_LIMIT_MEDIA_UPLOAD_PER_MIN:20}
   otp:
     ttl: ${OTP_TTL:2m}
     max-attempts: ${OTP_MAX_ATTEMPTS:4}
@@ -58,6 +59,12 @@ carepoint:
     provider: ${MAIL_PROVIDER:log}
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
+  app-base-url: ${APP_BASE_URL:http://localhost:8080}
+  storage:
+    
+    provider: ${STORAGE_PROVIDER:local}
+    local-dir: ${STORAGE_LOCAL_DIR:./var/media}
+    public-base-url: ${STORAGE_PUBLIC_BASE_URL:http://localhost:8080/api/v1/media/local}
 
 management:
   endpoints:

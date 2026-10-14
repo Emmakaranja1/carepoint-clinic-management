@@ -70,6 +70,15 @@ new password and **revokes every live session**. Log in again afterwards.
   inline `patient{}` (creates a claimable GUEST record); the desk
   bypasses the patient cancellation cutoff and can mark COMPLETED /
   NO_SHOW once the slot has started.
+- **Media folder order matters**: `Initiate upload` (staff session,
+  `{{clinicId}}`/`{{doctorId}}` from earlier folders) saves
+  `{{uploadUrl}}`/`{{mediaId}}`/`{{mediaPublicUrl}}` → `Upload bytes`
+  sends the file **binary** via the presigned URL (Body → binary, a PNG
+  under 1 MB — the declared ceiling; no cookies/CSRF header needed) →
+  `Confirm upload` verifies magic bytes server-side and activates the
+  media → `Fetch public image` then returns it anonymously. Confirming
+  bytes whose real type differs from the declared `contentType` fails
+  `400` and deletes the object.
 - Errors share one shape: `{code, message, fields?}` — e.g.
   `EMAIL_TAKEN`, `INVALID_CREDENTIALS`, `VALIDATION_FAILED`,
   `OTP_INVALID`, `EMAIL_NOT_VERIFIED`, `GOOGLE_TOKEN_INVALID`.
