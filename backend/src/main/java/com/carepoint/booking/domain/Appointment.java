@@ -97,8 +97,20 @@ public class Appointment {
         return cancelledAt;
     }
 
+    public boolean isBookedForGuest() {
+        return bookedForGuest;
+    }
+
     public void cancel() {
         this.status = "CANCELLED";
         this.cancelledAt = Instant.now();
+    }
+
+    public void markCompleted() {
+        this.status = "COMPLETED";
+    }
+
+    public void markNoShow() {
+        this.status = "NO_SHOW";
     }
 }

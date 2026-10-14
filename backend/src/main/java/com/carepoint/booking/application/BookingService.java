@@ -69,13 +69,14 @@ public class BookingService {
         this.jdbc = jdbc;
     }
 
-    public record AppointmentView(UUID id, UUID clinicId, UUID doctorId,
+    public record AppointmentView(UUID id, UUID clinicId, UUID doctorId, UUID patientId,
                                   String status, Instant start, Instant end,
-                                  String reason, Instant cancelledAt) {
+                                  String reason, boolean bookedForGuest,
+                                  Instant cancelledAt) {
         static AppointmentView of(Appointment a) {
             return new AppointmentView(a.getId(), a.getClinicId(), a.getDoctorId(),
-                    a.getStatus(), a.getSlotStart(), a.getSlotEnd(),
-                    a.getReason(), a.getCancelledAt());
+                    a.getPatientId(), a.getStatus(), a.getSlotStart(), a.getSlotEnd(),
+                    a.getReason(), a.isBookedForGuest(), a.getCancelledAt());
         }
     }
 
@@ -192,8 +193,28 @@ public class BookingService {
     private AppointmentView bookAndStore(Clinic clinic, UUID doctorId, UUID patientId,
                                          Instant start, Instant end, String reason,
                                          UUID key, String requestHash) {
-        // Re-validate against the engine — availability display is advisory;
-        // the booking path always checks for real (docs/09 §2.3).
+        AppointmentView view = insertValidated(clinic, doctorId, patientId,
+                patientId, start, end, reason, false);
+        if (key != null) {
+            try {
+                idempotencyKeys.save(new IdempotencyKey(key, patientId,
+                        requestHash, mapper.writeValueAsString(view)));
+            } catch (Exception e) {
+                throw new ApiException(ErrorCode.INTERNAL_ERROR, "Could not persist request");
+            }
+        }
+        return view;
+    }
+
+    /**
+     * Shared write path for patient self-booking and desk book-on-behalf:
+     * re-validates the slot against the availability engine, then inserts —
+     * the partial exclusion constraint arbitrates concurrent writers.
+     * Must run inside a transaction.
+     */
+    public AppointmentView insertValidated(Clinic clinic, UUID doctorId, UUID patientId,
+                                           UUID createdBy, Instant start, Instant end,
+                                           String reason, boolean bookedForGuest) {
         LocalDate day = LocalDate.ofInstant(start, ZoneId.of(clinic.getTimezone()));
         boolean validSlot = availability.available(clinic.getId(), doctorId, day, day)
                 .stream()
@@ -207,30 +228,20 @@ public class BookingService {
         try {
             jdbc.update("""
                     INSERT INTO appointments
-                      (id, clinic_id, doctor_id, patient_id, slot, reason, created_by)
-                    VALUES (?, ?, ?, ?, tstzrange(?, ?, '[)'), ?, ?)
+                      (id, clinic_id, doctor_id, patient_id, slot, reason,
+                       created_by, booked_for_guest)
+                    VALUES (?, ?, ?, ?, tstzrange(?, ?, '[)'), ?, ?, ?)
                     """,
                     id, clinic.getId(), doctorId, patientId,
                     OffsetDateTime.ofInstant(start, ZoneOffset.UTC),
                     OffsetDateTime.ofInstant(end, ZoneOffset.UTC),
-                    reason, patientId);
+                    reason, createdBy, bookedForGuest);
         } catch (DataAccessException e) {
             // exclusion-constraint violation or deadlock loser — same meaning
             throw new ApiException(ErrorCode.SLOT_TAKEN,
                     "That slot was just taken — pick another");
         }
-
-        Appointment a = appointments.findById(id).orElseThrow();
-        AppointmentView view = AppointmentView.of(a);
-        if (key != null) {
-            try {
-                idempotencyKeys.save(new IdempotencyKey(key, patientId,
-                        requestHash, mapper.writeValueAsString(view)));
-            } catch (Exception e) {
-                throw new ApiException(ErrorCode.INTERNAL_ERROR, "Could not persist request");
-            }
-        }
-        return view;
+        return AppointmentView.of(appointments.findById(id).orElseThrow());
     }
 
     private String hash(Object... parts) {
