@@ -2093,6 +2093,60 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Clinic summary report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('aggregate shape', function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.include.keys('from','to','byStatus','total','noShowRate','perDoctor');",
+                  "    pm.expect(b.byStatus).to.include.keys('BOOKED','CANCELLED','COMPLETED','NO_SHOW');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/reports/summary?from={{availabilityDate}}&to={{availabilityDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clinics",
+                "{{clinicId}}",
+                "reports",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{availabilityDate}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{availabilityDate}}"
+                }
+              ]
+            },
+            "description": "RECEPTIONIST or CLINIC_ADMIN. Aggregates only: status counts, per-doctor booked/completed/no-show, scheduled-slot capacity and utilization, no-show rate. Defaults to last 30 days; range capped at 12 months."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }
