@@ -64,6 +64,12 @@ new password and **revokes every live session**. Log in again afterwards.
   `409 IDEMPOTENCY_KEY_REUSED`, `409 CANCELLATION_WINDOW_PASSED`,
   `400 VALIDATION_FAILED` (past slot / end before start). Booking writes
   are rate-limited per IP (10/min default).
+- **Receptionist desk** requests need a staff session — sign in as the
+  invited receptionist (or clinic admin) first; `Doctor agenda (me)`
+  needs the doctor's own session. Desk bookings accept `patientId` or
+  inline `patient{}` (creates a claimable GUEST record); the desk
+  bypasses the patient cancellation cutoff and can mark COMPLETED /
+  NO_SHOW once the slot has started.
 - Errors share one shape: `{code, message, fields?}` — e.g.
   `EMAIL_TAKEN`, `INVALID_CREDENTIALS`, `VALIDATION_FAILED`,
   `OTP_INVALID`, `EMAIL_NOT_VERIFIED`, `GOOGLE_TOKEN_INVALID`.

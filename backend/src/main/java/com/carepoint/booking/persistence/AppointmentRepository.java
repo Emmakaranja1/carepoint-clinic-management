@@ -12,6 +12,8 @@ import com.carepoint.booking.domain.Appointment;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, UUID> {
 
+    Optional<Appointment> findByIdAndClinicId(UUID id, UUID clinicId);
+
     /** Own-appointments reads — patients never see foreign rows. */
     // Native queries must project the @Formula read aliases explicitly —
     // Hibernate expects literal "slotStart"/"slotEnd" column labels.

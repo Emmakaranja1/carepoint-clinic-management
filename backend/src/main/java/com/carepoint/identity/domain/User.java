@@ -68,6 +68,26 @@ public class User {
         return new User(email, fullName, null, null, provider, emailVerified);
     }
 
+    /**
+     * Desk-created patient record — no password, can never log in until a
+     * self-registration with the same email claims it (OTP-verified).
+     */
+    public static User guest(String email, String fullName, String phone) {
+        User u = new User(email, fullName, phone, null, "LOCAL", false);
+        u.status = "GUEST";
+        return u;
+    }
+
+    public boolean isGuest() {
+        return "GUEST".equals(status);
+    }
+
+    /** Claimed by self-registration: guest record becomes a real account. */
+    public void claimAsLocal(String passwordHash) {
+        this.passwordHash = passwordHash;
+        this.status = "ACTIVE";
+    }
+
     public UUID getId() {
         return id;
     }
