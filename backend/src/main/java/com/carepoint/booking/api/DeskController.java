@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,6 +25,8 @@ import com.carepoint.booking.api.dto.RescheduleRequest;
 import com.carepoint.booking.api.dto.TransitionRequest;
 import com.carepoint.booking.application.BookingService.AppointmentView;
 import com.carepoint.booking.application.DeskService;
+import com.carepoint.common.error.ApiException;
+import com.carepoint.common.error.ErrorCode;
 import com.carepoint.common.security.CarepointPrincipal;
 
 /** Receptionist desk + doctor agenda (docs/01 §5.6, US-S3). */
@@ -62,6 +65,7 @@ public class DeskController {
     public ResponseEntity<AppointmentView> bookOnBehalf(
             @AuthenticationPrincipal CarepointPrincipal principal,
             @PathVariable UUID clinicId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idemHeader,
             @Valid @RequestBody DeskBookRequest req) {
         DeskBookRequest.InlinePatient p = req.patient();
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -69,7 +73,21 @@ public class DeskController {
                         req.start(), req.end(), req.reason(), req.patientId(),
                         p == null ? null : p.email(),
                         p == null ? null : p.fullName(),
-                        p == null ? null : p.phone()));
+                        p == null ? null : p.phone(),
+                        parseIdempotencyKey(idemHeader)));
+    }
+
+    private static UUID parseIdempotencyKey(String header) {
+        if (header == null || header.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(header.trim());
+        } catch (IllegalArgumentException e) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED,
+                    "Request validation failed",
+                    java.util.Map.of("Idempotency-Key", "Must be a UUID"));
+        }
     }
 
     @PatchMapping("/appointments/{id}")
