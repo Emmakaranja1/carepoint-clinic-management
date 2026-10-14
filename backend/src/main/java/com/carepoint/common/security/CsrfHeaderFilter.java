@@ -28,6 +28,15 @@ public class CsrfHeaderFilter extends OncePerRequestFilter {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
+    /**
+     * Presigned media PUTs are bearer-capability URLs (HMAC-signed, no
+     * session cookie) — the CSRF concern doesn't apply to them.
+     */
+    @Override
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        return request.getRequestURI().startsWith("/api/v1/media/put/");
+    }
+
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,

@@ -49,7 +49,8 @@ public class SecurityConfig {
             @Value("${carepoint.rate-limit.register-per-minute}") int registerLimit,
             @Value("${carepoint.rate-limit.otp-per-minute}") int otpLimit,
             @Value("${carepoint.rate-limit.availability-per-minute}") int availabilityLimit,
-            @Value("${carepoint.rate-limit.booking-per-minute}") int bookingLimit) throws Exception {
+            @Value("${carepoint.rate-limit.booking-per-minute}") int bookingLimit,
+            @Value("${carepoint.rate-limit.media-upload-per-minute}") int mediaLimit) throws Exception {
 
         RateLimitFilter rateLimits = new RateLimitFilter(List.of(
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/login", loginLimit),
@@ -60,6 +61,7 @@ public class SecurityConfig {
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/reset-password", otpLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/google", otpLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/appointments", bookingLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/clinics/*/media/uploads", mediaLimit),
                 new RateLimitFilter.Rule("GET", "/api/v1/clinics/*/doctors/*/availability",
                         availabilityLimit)));
 
@@ -88,7 +90,11 @@ public class SecurityConfig {
                         "/api/v1/clinics/*/doctors/*",
                         "/api/v1/clinics/*/doctors/*/availability",
                         "/api/v1/clinics/*/specialties",
-                        "/api/v1/specialties")
+                        "/api/v1/specialties",
+                        "/api/v1/media/local/**")
+                .permitAll()
+                // presigned media PUT — the HMAC signature is the capability
+                .requestMatchers(HttpMethod.PUT, "/api/v1/media/put/**")
                 .permitAll()
                 .anyRequest().authenticated())
             .exceptionHandling(e -> e
