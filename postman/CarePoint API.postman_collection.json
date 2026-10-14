@@ -1801,6 +1801,298 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Receptionist desk",
+      "item": [
+        {
+          "name": "Clinic agenda",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('page shape', function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.keys('content','page','size','totalElements');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/appointments?from={{availabilityDate}}&to={{availabilityDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clinics",
+                "{{clinicId}}",
+                "appointments"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{availabilityDate}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{availabilityDate}}"
+                }
+              ]
+            },
+            "description": "RECEPTIONIST or CLINIC_ADMIN only. Defaults to today when from/to are omitted; optional doctorId + status filters.\nSign in as the invited receptionist (see Clinics & staff → Invite staff) before running."
+          },
+          "response": []
+        },
+        {
+          "name": "Book on behalf — guest patient",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = new Date();",
+                  "d.setUTCDate(d.getUTCDate() + ((8 - d.getUTCDay()) % 7 || 7)); // next Monday (UTC)",
+                  "const day = d.toISOString().slice(0,10);",
+                  "pm.collectionVariables.set('slotStart', day + 'T09:00:00Z');",
+                  "pm.collectionVariables.set('slotEnd', day + 'T09:30:00Z');",
+                  "pm.collectionVariables.set('slotStart2', day + 'T10:00:00Z');",
+                  "pm.collectionVariables.set('slotEnd2', day + 'T10:30:00Z');",
+                  "pm.collectionVariables.set('availabilityDate', day);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+                  "const b = pm.response.json();",
+                  "pm.test('guest flag set', function () { pm.expect(b.bookedForGuest).to.eql(true); });",
+                  "pm.collectionVariables.set('deskAppointmentId', b.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctorId\": \"{{doctorId}}\",\n  \"start\": \"{{slotStart}}\",\n  \"end\": \"{{slotEnd}}\",\n  \"reason\": \"walk-in via desk\",\n  \"patient\": {\n    \"email\": \"walkin.demo@carepoint.test\",\n    \"fullName\": \"Walk In\",\n    \"phone\": \"+254700000000\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clinics",
+                "{{clinicId}}",
+                "appointments"
+              ]
+            },
+            "description": "Books for a patient without an account — a claimable GUEST record is created (they register with the same email to claim it).\nUse patientId instead of patient{} to book for an existing user. Needs a schedule covering {{slotStart}} (run 'Set doctor schedule')."
+          },
+          "response": []
+        },
+        {
+          "name": "Reschedule appointment",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = new Date();",
+                  "d.setUTCDate(d.getUTCDate() + ((8 - d.getUTCDay()) % 7 || 7)); // next Monday (UTC)",
+                  "const day = d.toISOString().slice(0,10);",
+                  "pm.collectionVariables.set('slotStart', day + 'T09:00:00Z');",
+                  "pm.collectionVariables.set('slotEnd', day + 'T09:30:00Z');",
+                  "pm.collectionVariables.set('slotStart2', day + 'T10:00:00Z');",
+                  "pm.collectionVariables.set('slotEnd2', day + 'T10:30:00Z');",
+                  "pm.collectionVariables.set('availabilityDate', day);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('new slot', function () {",
+                  "    pm.expect(pm.response.json().start).to.eql(pm.collectionVariables.get('slotStart2'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start\": \"{{slotStart2}}\",\n  \"end\": \"{{slotEnd2}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/appointments/{{deskAppointmentId}}/reschedule",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clinics",
+                "{{clinicId}}",
+                "appointments",
+                "{{deskAppointmentId}}",
+                "reschedule"
+              ]
+            },
+            "description": "Atomic cancel + rebook: the old slot frees and the new one books in one transaction. Optional doctorId moves it to another doctor."
+          },
+          "response": []
+        },
+        {
+          "name": "Update status — cancel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('CANCELLED', function () { pm.expect(pm.response.json().status).to.eql('CANCELLED'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CANCELLED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/appointments/{{deskAppointmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clinics",
+                "{{clinicId}}",
+                "appointments",
+                "{{deskAppointmentId}}"
+              ]
+            },
+            "description": "BOOKED → CANCELLED|COMPLETED|NO_SHOW. Staff bypass the patient cancellation cutoff; COMPLETED/NO_SHOW require the slot to have started."
+          },
+          "response": []
+        },
+        {
+          "name": "Doctor agenda (me)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = new Date();",
+                  "d.setUTCDate(d.getUTCDate() + ((8 - d.getUTCDay()) % 7 || 7)); // next Monday (UTC)",
+                  "const day = d.toISOString().slice(0,10);",
+                  "pm.collectionVariables.set('slotStart', day + 'T09:00:00Z');",
+                  "pm.collectionVariables.set('slotEnd', day + 'T09:30:00Z');",
+                  "pm.collectionVariables.set('slotStart2', day + 'T10:00:00Z');",
+                  "pm.collectionVariables.set('slotEnd2', day + 'T10:30:00Z');",
+                  "pm.collectionVariables.set('availabilityDate', day);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/me/appointments?date={{availabilityDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "clinics",
+                "{{clinicId}}",
+                "me",
+                "appointments"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{availabilityDate}}"
+                }
+              ]
+            },
+            "description": "The signed-in doctor's own appointments for ?date= (defaults to today).\nRequires a session for the user who owns {{doctorId}}'s membership — sign in as the invited doctor."
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }
