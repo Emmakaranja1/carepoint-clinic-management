@@ -52,6 +52,18 @@ new password and **revokes every live session**. Log in again afterwards.
   characters, an uppercase letter, a lowercase letter, a digit.
 - `Google sign-in` needs `GOOGLE_CLIENT_ID` configured and a real Google
   ID token from a frontend sign-in — it is not testable standalone.
+- **Booking folder order matters**: run `Book appointment` first — its
+  pre-request script computes next-Monday slot variables
+  (`slotStart`/`slotEnd`) and a persistent `{{bookingIdemKey}}`, and its
+  test saves `{{appointmentId}}` for the replay/get/cancel requests. The
+  doctor needs a schedule covering that slot (run `Set doctor schedule`
+  in the Scheduling folder first; defaults assume Monday 09:00–12:00 UTC
+  at 30-minute slots).
+- Booking errors: `409 SLOT_TAKEN` (lost the race), `409 INVALID_SLOT`
+  (not a schedule-grid slot, or beyond the clinic's lookahead window),
+  `409 IDEMPOTENCY_KEY_REUSED`, `409 CANCELLATION_WINDOW_PASSED`,
+  `400 VALIDATION_FAILED` (past slot / end before start). Booking writes
+  are rate-limited per IP (10/min default).
 - Errors share one shape: `{code, message, fields?}` — e.g.
   `EMAIL_TAKEN`, `INVALID_CREDENTIALS`, `VALIDATION_FAILED`,
   `OTP_INVALID`, `EMAIL_NOT_VERIFIED`, `GOOGLE_TOKEN_INVALID`.

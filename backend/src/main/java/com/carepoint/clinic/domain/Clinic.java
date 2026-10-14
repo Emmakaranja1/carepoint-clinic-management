@@ -78,6 +78,14 @@ public class Clinic {
         return timezone;
     }
 
+    public int getCancellationCutoffHours() {
+        return cancellationCutoffHours;
+    }
+
+    public int getSlotLookaheadDays() {
+        return slotLookaheadDays;
+    }
+
     public String getStatus() {
         return status;
     }
