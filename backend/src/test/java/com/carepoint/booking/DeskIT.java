@@ -274,6 +274,36 @@ class DeskIT {
     }
 
     @Test
+    void bookOnBehalf_idempotencyKey_replaysAndConflicts() throws Exception {
+        String key = UUID.randomUUID().toString();
+        String body = bookForGuestBody("idem-" + sfx() + "@t.local",
+                MONDAY + "T10:00:00Z", MONDAY + "T10:30:00Z");
+
+        MvcResult first = deskBook(receptionist, body, key)
+                .andExpect(status().isCreated())
+                .andReturn();
+        String id = jsonField(first.getResponse().getContentAsString(), "id");
+
+        // same key + same request → replays the original, no duplicate
+        deskBook(receptionist, body, key)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(id));
+        mvc.perform(get(agenda).cookie(receptionist)
+                        .param("from", MONDAY.toString()).param("to", MONDAY.toString()))
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        // same key + different request → conflict
+        deskBook(receptionist, bookForGuestBody("other-" + sfx() + "@t.local",
+                        MONDAY + "T11:00:00Z", MONDAY + "T11:30:00Z"), key)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REUSED"));
+
+        // malformed header → 400, not a silent ignore
+        deskBook(receptionist, body, "not-a-uuid")
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void bookOnBehalf_sameSlot_conflict() throws Exception {
         bookAsPatient(MONDAY + "T09:00:00Z", MONDAY + "T09:30:00Z");
         // committed booking → slot absent from availability → INVALID_SLOT
@@ -415,9 +445,18 @@ class DeskIT {
 
     private org.springframework.test.web.servlet.ResultActions deskBook(
             Cookie who, String body) throws Exception {
-        return mvc.perform(post(deskBook).cookie(who)
+        return deskBook(who, body, null);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions deskBook(
+            Cookie who, String body, String idempotencyKey) throws Exception {
+        var req = post(deskBook).cookie(who)
                 .header("X-Requested-With", "XMLHttpRequest")
-                .contentType(MediaType.APPLICATION_JSON).content(body));
+                .contentType(MediaType.APPLICATION_JSON).content(body);
+        if (idempotencyKey != null) {
+            req.header("Idempotency-Key", idempotencyKey);
+        }
+        return mvc.perform(req);
     }
 
     private MvcResult bookAsPatient(String start, String end) throws Exception {

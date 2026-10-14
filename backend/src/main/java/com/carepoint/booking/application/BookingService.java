@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -103,17 +104,12 @@ public class BookingService {
                     Map.of("end", "end must be after start"));
         }
 
-        if (idempotencyKey != null) {
-            String requestHash = hash(clinicId, doctorId, start, end, reason);
-            Optional<AppointmentView> replay = checkKey(idempotencyKey, patient.getId(), requestHash);
-            if (replay.isPresent()) {
-                return replay.get();
-            }
-            return bookAndStore(clinic, doctorId, patient.getId(), start, end,
-                    reason, idempotencyKey, requestHash);
-        }
-        return bookAndStore(clinic, doctorId, patient.getId(), start, end,
-                reason, null, null);
+        UUID pid = patient.getId();
+        String requestHash = idempotencyKey == null ? null
+                : requestHash(clinicId, doctorId, start, end, reason);
+        return withIdempotency(idempotencyKey, pid, requestHash,
+                () -> insertValidated(clinic, doctorId, pid, pid, start, end,
+                        reason, false));
     }
 
     public List<AppointmentView> mine(CarepointPrincipal principal, String when) {
@@ -171,6 +167,47 @@ public class BookingService {
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "Not found"));
     }
 
+    /**
+     * Idempotency wrapper shared by patient booking and desk book-on-behalf:
+     * same key + same request → the stored response replays; same key +
+     * different request → 409. A null key just runs the write. Must run
+     * inside the caller's transaction — key row and business write commit
+     * or roll back together.
+     */
+    public AppointmentView withIdempotency(UUID key, UUID userId, String requestHash,
+                                           Supplier<AppointmentView> write) {
+        if (key == null) {
+            return write.get();
+        }
+        Optional<AppointmentView> replay = checkKey(key, userId, requestHash);
+        if (replay.isPresent()) {
+            return replay.get();
+        }
+        AppointmentView view = write.get();
+        try {
+            idempotencyKeys.save(new IdempotencyKey(key, userId,
+                    requestHash, mapper.writeValueAsString(view)));
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.INTERNAL_ERROR, "Could not persist request");
+        }
+        return view;
+    }
+
+    /** Request fingerprint — include every field that defines the write. */
+    public static String requestHash(Object... parts) {
+        try {
+            String raw = String.join("|",
+                    java.util.Arrays.stream(parts)
+                            .map(p -> String.valueOf(p))
+                            .toList());
+            return HexFormat.of().formatHex(
+                    MessageDigest.getInstance("SHA-256")
+                            .digest(raw.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     private Optional<AppointmentView> checkKey(UUID key, UUID userId, String requestHash) {
         return idempotencyKeys.findById(key).flatMap(stored -> {
             if (stored.getCreatedAt().isBefore(Instant.now().minus(KEY_TTL))) {
@@ -188,22 +225,6 @@ public class BookingService {
                 return Optional.empty();
             }
         });
-    }
-
-    private AppointmentView bookAndStore(Clinic clinic, UUID doctorId, UUID patientId,
-                                         Instant start, Instant end, String reason,
-                                         UUID key, String requestHash) {
-        AppointmentView view = insertValidated(clinic, doctorId, patientId,
-                patientId, start, end, reason, false);
-        if (key != null) {
-            try {
-                idempotencyKeys.save(new IdempotencyKey(key, patientId,
-                        requestHash, mapper.writeValueAsString(view)));
-            } catch (Exception e) {
-                throw new ApiException(ErrorCode.INTERNAL_ERROR, "Could not persist request");
-            }
-        }
-        return view;
     }
 
     /**
@@ -242,19 +263,5 @@ public class BookingService {
                     "That slot was just taken — pick another");
         }
         return AppointmentView.of(appointments.findById(id).orElseThrow());
-    }
-
-    private String hash(Object... parts) {
-        try {
-            String raw = String.join("|",
-                    java.util.Arrays.stream(parts)
-                            .map(p -> String.valueOf(p))
-                            .toList());
-            return HexFormat.of().formatHex(
-                    MessageDigest.getInstance("SHA-256")
-                            .digest(raw.getBytes(StandardCharsets.UTF_8)));
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
     }
 }

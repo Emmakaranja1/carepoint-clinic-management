@@ -163,12 +163,17 @@ public class DeskService {
 
     // ---------- US-R2 — book on behalf ----------
 
+    /**
+     * Book on behalf — accepts the same Idempotency-Key contract as patient
+     * booking so a retried/double-submitted request can't duplicate the
+     * appointment. The key is scoped to the acting staff member + request.
+     */
     @Transactional
     public AppointmentView bookOnBehalf(CarepointPrincipal principal, UUID clinicId,
                                         UUID doctorId, Instant start, Instant end,
                                         String reason, UUID patientId,
                                         String patientEmail, String patientName,
-                                        String patientPhone) {
+                                        String patientPhone, UUID idempotencyKey) {
         authz.requireRole(principal, clinicId, "RECEPTIONIST", "CLINIC_ADMIN");
         Clinic clinic = activeClinic(clinicId);
         if (profiles.findByIdAndClinicId(doctorId, clinicId).isEmpty()) {
@@ -186,8 +191,13 @@ public class DeskService {
         User patient = patientId != null
                 ? resolveById(patientId)
                 : resolveOrCreateGuest(patientEmail, patientName, patientPhone);
-        return booking.insertValidated(clinic, doctorId, patient.getId(),
-                principal.userId(), start, end, reason, patient.isGuest());
+        UUID staffId = principal.userId();
+        UUID pid = patient.getId();
+        String requestHash = idempotencyKey == null ? null
+                : BookingService.requestHash(clinicId, doctorId, pid, start, end, reason);
+        return booking.withIdempotency(idempotencyKey, staffId, requestHash,
+                () -> booking.insertValidated(clinic, doctorId, pid, staffId,
+                        start, end, reason, patient.isGuest()));
     }
 
     // ---------- US-R3 — manage status / reschedule ----------
