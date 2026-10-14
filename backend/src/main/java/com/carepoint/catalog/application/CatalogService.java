@@ -1,5 +1,6 @@
 package com.carepoint.catalog.application;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -22,6 +23,7 @@ import com.carepoint.common.security.CarepointPrincipal;
 import com.carepoint.common.security.ClinicAuthorization;
 import com.carepoint.identity.domain.ClinicMembership;
 import com.carepoint.identity.persistence.ClinicMembershipRepository;
+import com.carepoint.media.application.MediaService;
 
 /**
  * Public discovery reads + staff writes for doctor profiles.
@@ -39,47 +41,69 @@ public class CatalogService {
     private final SpecialtyRepository specialties;
     private final ClinicMembershipRepository memberships;
     private final ClinicAuthorization authz;
+    private final MediaService media;
 
     public CatalogService(ClinicRepository clinics,
                           DoctorProfileRepository profiles,
                           SpecialtyRepository specialties,
                           ClinicMembershipRepository memberships,
-                          ClinicAuthorization authz) {
+                          ClinicAuthorization authz,
+                          MediaService media) {
         this.clinics = clinics;
         this.profiles = profiles;
         this.specialties = specialties;
         this.memberships = memberships;
         this.authz = authz;
+        this.media = media;
     }
 
     // ---------- public discovery ----------
 
     public Page<Clinic> listClinics(String name, int page, int size) {
         Pageable p = pageable(page, size);
-        return (name == null || name.isBlank())
+        Page<Clinic> result = (name == null || name.isBlank())
                 ? clinics.findByStatusOrderByNameAscIdAsc("ACTIVE", p)
                 : clinics.findByStatusAndNameStartingWithIgnoreCaseOrderByNameAscIdAsc(
                         "ACTIVE", name.trim(), p);
+        attachLogos(result.getContent());
+        return result;
     }
 
     public Clinic getClinic(UUID clinicId) {
-        return clinics.findById(clinicId)
+        Clinic clinic = clinics.findById(clinicId)
                 .filter(c -> "ACTIVE".equals(c.getStatus()))
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "Not found"));
+        attachLogos(List.of(clinic));
+        return clinic;
+    }
+
+    /** One bounded IN query per page — never a per-row media lookup. */
+    private void attachLogos(Collection<Clinic> page) {
+        Map<UUID, String> logos = media.publicUrlsByPurpose("CLINIC_LOGO",
+                page.stream().map(Clinic::getId).toList());
+        page.forEach(c -> c.setLogoUrl(logos.get(c.getId())));
     }
 
     public Page<DoctorSummary> listDoctors(UUID clinicId, UUID specialtyId,
                                            String q, int page, int size) {
         getClinic(clinicId); // 404 on unknown/disabled clinic
         // empty q → "LIKE '%'" matches all; avoids nullable-param type inference
-        return profiles.searchInClinic(clinicId, specialtyId,
-                        q == null ? "" : q.trim(), pageable(page, size));
+        Page<DoctorRow> rows = profiles.searchInClinic(clinicId, specialtyId,
+                q == null ? "" : q.trim(), pageable(page, size));
+        Map<UUID, String> photos = media.publicUrlsByPurpose("DOCTOR_PHOTO",
+                rows.getContent().stream().map(DoctorRow::id).toList());
+        return rows.map(r -> new DoctorSummary(r.id(), r.fullName(), r.specialty(),
+                r.consultMinutes(), photos.get(r.id())));
     }
 
     public DoctorDetail getDoctor(UUID clinicId, UUID doctorId) {
         getClinic(clinicId);
-        return profiles.detailInClinic(clinicId, doctorId)
+        DoctorDetailRow r = profiles.detailInClinic(clinicId, doctorId)
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "Not found"));
+        String photo = media.publicUrlsByPurpose("DOCTOR_PHOTO", List.of(doctorId))
+                .get(doctorId);
+        return new DoctorDetail(r.id(), r.fullName(), r.specialty(), r.bio(),
+                r.consultMinutes(), photo);
     }
 
     public List<Specialty> clinicSpecialties(UUID clinicId) {
@@ -141,10 +165,22 @@ public class CatalogService {
                 Math.min(Math.max(1, size), MAX_PAGE_SIZE));
     }
 
-    public record DoctorSummary(UUID id, String fullName, String specialty, Integer consultMinutes) {
+    // ---------- public API records (response shape) ----------
+
+    public record DoctorSummary(UUID id, String fullName, String specialty,
+                                Integer consultMinutes, String photoUrl) {
     }
 
     public record DoctorDetail(UUID id, String fullName, String specialty,
-                               String bio, Integer consultMinutes) {
+                               String bio, Integer consultMinutes, String photoUrl) {
+    }
+
+    // ---------- JPQL projection rows (internal) ----------
+
+    public record DoctorRow(UUID id, String fullName, String specialty, Integer consultMinutes) {
+    }
+
+    public record DoctorDetailRow(UUID id, String fullName, String specialty,
+                                  String bio, Integer consultMinutes) {
     }
 }

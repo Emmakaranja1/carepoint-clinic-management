@@ -36,6 +36,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import com.carepoint.catalog.domain.Specialty;
 import com.carepoint.catalog.persistence.SpecialtyRepository;
 import com.carepoint.common.mail.MailService;
+import com.carepoint.identity.persistence.UserRepository;
+import com.carepoint.media.domain.MediaObject;
+import com.carepoint.media.persistence.MediaObjectRepository;
 
 @Testcontainers
 @SpringBootTest
@@ -59,11 +62,18 @@ class DiscoveryIT {
     @Autowired
     SpecialtyRepository specialties;
 
+    @Autowired
+    UserRepository users;
+
+    @Autowired
+    MediaObjectRepository media;
+
     @MockitoBean
     MailService mail;
 
     UUID cardiology;
     Cookie admin;
+    String adminEmail;
     String clinicId;
     String doctorMembershipId;
     String doctorId;
@@ -71,7 +81,8 @@ class DiscoveryIT {
     @BeforeEach
     void setup() throws Exception {
         cardiology = specialties.save(new Specialty("Cardiology-" + suffix())).getId();
-        admin = verifiedSession("disc-" + suffix() + "@test.local");
+        adminEmail = "disc-" + suffix() + "@test.local";
+        admin = verifiedSession(adminEmail);
         clinicId = createClinicAs(admin);
         doctorMembershipId = invite(clinicId, admin, "dr-" + suffix() + "@test.local", "DOCTOR");
         doctorId = createProfile(clinicId, admin, doctorMembershipId, cardiology);
@@ -212,6 +223,52 @@ class DiscoveryIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.bio").value("New bio"))
                 .andExpect(jsonPath("$.consultMinutes").value(30));
+    }
+
+    // ---------- media surfacing ----------
+
+    @Test
+    void discovery_surfacesActiveMediaOnly() throws Exception {
+        UUID uploader = users.findByEmail(adminEmail).orElseThrow().getId();
+        media.saveAndFlush(activeMedia("DOCTOR_PHOTO", "DOCTOR_PROFILE",
+                UUID.fromString(doctorId), "active-doc-" + suffix() + ".png", uploader));
+        media.saveAndFlush(activeMedia("CLINIC_LOGO", "CLINIC",
+                UUID.fromString(clinicId), "active-logo-" + suffix() + ".png", uploader));
+        // second doctor whose only upload never confirmed → not surfaced
+        String m2 = invite(clinicId, admin, "dr2-" + suffix() + "@test.local", "DOCTOR");
+        String d2 = createProfile(clinicId, admin, m2, cardiology);
+        media.saveAndFlush(new MediaObject(UUID.fromString(clinicId), "DOCTOR_PHOTO",
+                "public/" + clinicId + "/pending-" + suffix() + ".png", "local",
+                "image/png", 10, "DOCTOR_PROFILE", UUID.fromString(d2), uploader));
+
+        mvc.perform(get("/api/v1/clinics/" + clinicId + "/doctors"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[?(@.id=='" + doctorId + "')].photoUrl",
+                        org.hamcrest.Matchers.contains(
+                                org.hamcrest.Matchers.containsString("active-doc-"))))
+                .andExpect(jsonPath("$.content[?(@.id=='" + d2 + "')].photoUrl",
+                        org.hamcrest.Matchers.contains(org.hamcrest.Matchers.nullValue())));
+        mvc.perform(get("/api/v1/clinics/" + clinicId + "/doctors/" + doctorId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.photoUrl")
+                        .value(org.hamcrest.Matchers.containsString("active-doc-")));
+        mvc.perform(get("/api/v1/clinics/" + clinicId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.logoUrl")
+                        .value(org.hamcrest.Matchers.containsString("active-logo-")));
+        mvc.perform(get("/api/v1/clinics").param("name", clinicName))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].logoUrl")
+                        .value(org.hamcrest.Matchers.containsString("active-logo-")));
+    }
+
+    private MediaObject activeMedia(String purpose, String ownerType, UUID ownerId,
+                                    String fileName, UUID uploader) {
+        MediaObject m = new MediaObject(UUID.fromString(clinicId), purpose,
+                "public/" + clinicId + "/" + fileName, "local", "image/png", 10,
+                ownerType, ownerId, uploader);
+        m.markActive();
+        return m;
     }
 
     // ---------- regressions ----------

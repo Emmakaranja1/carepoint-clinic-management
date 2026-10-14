@@ -8,6 +8,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -45,6 +46,10 @@ public class Clinic {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    /** Read-model field — set by the service from media metadata, never stored. */
+    @Transient
+    private String logoUrl;
 
     protected Clinic() {
     }
@@ -88,5 +93,13 @@ public class Clinic {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getLogoUrl() {
+        return logoUrl;
+    }
+
+    public void setLogoUrl(String logoUrl) {
+        this.logoUrl = logoUrl;
     }
 }
