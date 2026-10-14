@@ -71,8 +71,18 @@ public class AuthService {
                     "Request validation failed",
                     Map.of("confirmPassword", "Passwords do not match"));
         }
-        if (users.existsByEmail(email)) {
-            throw new ApiException(ErrorCode.EMAIL_TAKEN, "An account with this email already exists");
+        var existing = users.findByEmail(email);
+        if (existing.isPresent()) {
+            User guest = existing.get();
+            if (!guest.isGuest()) {
+                throw new ApiException(ErrorCode.EMAIL_TAKEN,
+                        "An account with this email already exists");
+            }
+            // Desk-created guest record claimed by its real owner — the
+            // emailed OTP still has to pass before login works.
+            guest.claimAsLocal(passwords.encode(password));
+            otp.send(email, guest.getId(), "VERIFY_EMAIL");
+            return guest;
         }
         try {
             User user = users.save(User.localUser(email, passwords.encode(password), fullName, phone));
