@@ -10,6 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "overrides": {
+    "postcss": "^8.5.23"
+  },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
     "next": "15.5.27",
