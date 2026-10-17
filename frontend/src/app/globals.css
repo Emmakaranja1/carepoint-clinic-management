@@ -1,10 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f2f8fd;
+  --foreground: #334155;
 }
 
+/* Brand tokens sampled from the UI reference (public/CarePoint Healthcare UI Showcase.png) */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -12,10 +13,30 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@theme {
+  /* action blue — buttons, links, logo */
+  --color-brand-50: #eef5fd;
+  --color-brand-100: #d7e8fc;
+  --color-brand-300: #8ab9fa;
+  --color-brand-400: #5ba0f8;
+  --color-brand-500: #0a6efc;
+  --color-brand-600: #085fdf;
+  --color-brand-700: #074db6;
+
+  /* surfaces & text */
+  --color-canvas: #f2f8fd;
+  --color-heading: #01194d;
+  --color-navy: #111f34;
+
+  /* status accent — confirmed / available chips */
+  --color-mint: #67cebb;
+  --color-mint-foreground: #17866d;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0a0f1a;
+    --foreground: #e2e8f0;
   }
 }
 
