@@ -20,12 +20,15 @@ interface SessionState {
   status: SessionStatus;
   /** Call once on app mount — resolves the cookie session, if any. */
   hydrate: () => Promise<void>;
+  /** Set directly after login/verify/google — no extra /me round-trip. */
+  setUser: (user: SessionUser) => void;
   logout: () => Promise<void>;
 }
 
 export const useSession = create<SessionState>((set) => ({
   user: null,
   status: "loading",
+  setUser: (user) => set({ user, status: "authenticated" }),
   hydrate: async () => {
     try {
       const user = await api<SessionUser>("/auth/me");

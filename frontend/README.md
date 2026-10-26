@@ -8,7 +8,7 @@ Fictional demo data only — a portfolio build, not a live clinic system.
 - **Next.js 15** (App Router) · **React 19** · **TypeScript strict**
 - **Tailwind CSS 4**
 - **Zustand** — session/client state
-- **React Hook Form + Zod** — forms (installed; auth screens coming)
+- **React Hook Form + Zod** — forms
 - **Vitest** — unit tests
 
 ## Run it
@@ -40,6 +40,11 @@ tokens in JavaScript.
 - `src/lib/api.ts` is the **only** place `fetch()` may be called.
 - `useSession` (`src/features/auth/session.ts`) hydrates from
   `GET /auth/me` on mount; `clinicRoles` empty ⇒ patient.
+- Auth screens live under `(auth)`: `/register` → `/verify-email`
+  (OTP) → `/login`, plus `/forgot-password` → `/reset-password`.
+- Google sign-in renders only when `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+  is set (same client id as the backend's `GOOGLE_CLIENT_ID`);
+  hidden otherwise — a client id is public, not a secret.
 
 ## Checks (same as CI)
 
