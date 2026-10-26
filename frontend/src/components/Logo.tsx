@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 /** Heart-pulse mark + CarePoint wordmark, per the brand reference. */
-export function Logo({ href = "/" }: { href?: string }) {
+export function Logo({ href = "/", light = false }: { href?: string; light?: boolean }) {
   return (
     <Link href={href} className="inline-flex items-center gap-2">
       <svg
@@ -20,8 +20,8 @@ export function Logo({ href = "/" }: { href?: string }) {
         />
       </svg>
       <span className="text-xl font-bold tracking-tight">
-        <span className="text-brand-500">Care</span>
-        <span className="text-zinc-900 dark:text-zinc-50">Point</span>
+        <span className={light ? "text-white" : "text-brand-500"}>Care</span>
+        <span className={light ? "text-brand-300" : "text-zinc-900 dark:text-zinc-50"}>Point</span>
       </span>
     </Link>
   );
