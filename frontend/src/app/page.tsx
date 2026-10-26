@@ -212,7 +212,7 @@ export default function Home() {
               </p>
             </div>
             <div className="mt-20 grid gap-8 sm:grid-cols-3">
-              {howItWorks.map((item, index) => (
+              {howItWorks.map((item) => (
                 <div
                   key={item.step}
                   className="group relative text-center"

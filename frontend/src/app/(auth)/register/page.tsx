@@ -13,7 +13,7 @@ export default function RegisterPage() {
   const { hydrate } = useSession();
   const [error, setError] = useState("");
 
-  const handleGoogleSuccess = async (user: { fullName: string; email: string }) => {
+  const handleGoogleSuccess = async (_user: { fullName: string; email: string }) => {
     await hydrate();
     router.push("/");
   };

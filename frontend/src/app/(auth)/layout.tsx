@@ -30,7 +30,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             Quality Healthcare Made Simple
           </h2>
           <p className="mt-3 max-w-xs text-base text-white/90">
-            "Your health journey matters to us."
+            &ldquo;Your health journey matters to us.&rdquo;
           </p>
         </div>
       </aside>
