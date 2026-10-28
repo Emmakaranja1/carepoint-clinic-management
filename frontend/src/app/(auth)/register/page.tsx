@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
 
   const handleGoogleSuccess = async (_user: { fullName: string; email: string }) => {
+    // user is from Google sign-in; hydrate() refreshes the session from cookies
     await hydrate();
     router.push("/");
   };

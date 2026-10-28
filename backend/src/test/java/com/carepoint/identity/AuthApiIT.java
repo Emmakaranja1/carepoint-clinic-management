@@ -76,7 +76,7 @@ class AuthApiIT {
     // ---------- registration ----------
 
     @Test
-    void register_createsPatientAccount_pendingVerification() throws Exception {
+    void register_createsPatientAccount_andCanLogin() throws Exception {
         String email = "reg-" + UUID.randomUUID() + "@test.local";
         mvc.perform(post("/api/v1/auth/register")
                         .header("X-Requested-With", "XMLHttpRequest")
@@ -88,15 +88,10 @@ class AuthApiIT {
                 .andExpect(jsonPath("$.email").value(email))
                 .andExpect(jsonPath("$.id").isString())
                 .andExpect(jsonPath("$.message").value(
-                        "Registration successful — we've emailed you a verification code"));
+                        "Registration successful — you can now sign in"));
 
-        // login is gated until the emailed code verifies the address
-        mvc.perform(post("/api/v1/auth/login")
-                        .header("X-Requested-With", "XMLHttpRequest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("{\"email\":\"%s\",\"password\":\"%s\"}", email, PASSWORD)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("EMAIL_NOT_VERIFIED"));
+        // login works immediately
+        login(email, PASSWORD);
     }
 
     @Test
@@ -142,88 +137,30 @@ class AuthApiIT {
                 .andExpect(jsonPath("$.fields.confirmPassword").value("Passwords do not match"));
     }
 
-    // ---------- email verification OTP ----------
-
-    @Test
-    void verifyEmail_correctCode_marksVerified_andIssuesSession() throws Exception {
-        String email = "verify-" + UUID.randomUUID() + "@test.local";
-        register(email, PASSWORD);
-        String code = lastCodeSentTo(email);
-
-        MvcResult result = mvc.perform(post("/api/v1/auth/verify-email")
-                        .header("X-Requested-With", "XMLHttpRequest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("{\"email\":\"%s\",\"code\":\"%s\"}", email, code)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value(email))
-                .andReturn();
-        assertThat(cookieValue(result, "cp_access")).isNotBlank();
-
-        // and the code cannot be replayed
-        mvc.perform(post("/api/v1/auth/verify-email")
-                        .header("X-Requested-With", "XMLHttpRequest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("{\"email\":\"%s\",\"code\":\"%s\"}", email, code)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("OTP_INVALID"));
-    }
-
-    @Test
-    void verifyEmail_fourWrongAttempts_killsTheCode() throws Exception {
-        String email = "att-" + UUID.randomUUID() + "@test.local";
-        register(email, PASSWORD);
-        String goodCode = lastCodeSentTo(email);
-        String badCode = goodCode.equals("000000") ? "000001" : "000000";
-
-        for (int i = 0; i < 4; i++) {
-            mvc.perform(post("/api/v1/auth/verify-email")
-                            .header("X-Requested-With", "XMLHttpRequest")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(body("{\"email\":\"%s\",\"code\":\"%s\"}", email, badCode)))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.code").value("OTP_INVALID"));
-        }
-        // attempts exhausted — even the correct code is now rejected
-        mvc.perform(post("/api/v1/auth/verify-email")
-                        .header("X-Requested-With", "XMLHttpRequest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("{\"email\":\"%s\",\"code\":\"%s\"}", email, goodCode)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("OTP_INVALID"));
-    }
-
-    @Test
-    void verifyEmail_expiredCode_rejected() throws Exception {
-        String email = "exp-" + UUID.randomUUID() + "@test.local";
-        register(email, PASSWORD);
-        String code = lastCodeSentTo(email);
-        jdbc.update("UPDATE otp_codes SET expires_at = now() - interval '1 second' WHERE email = ?", email);
-
-        mvc.perform(post("/api/v1/auth/verify-email")
-                        .header("X-Requested-With", "XMLHttpRequest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("{\"email\":\"%s\",\"code\":\"%s\"}", email, code)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("OTP_INVALID"));
-    }
+    // ---------- resend code (password reset only) ----------
 
     @Test
     void resendCode_fourSends_thenCooldown() throws Exception {
         String email = "rs-" + UUID.randomUUID() + "@test.local";
-        register(email, PASSWORD); // send #1
+        register(email, PASSWORD);
+        mvc.perform(post("/api/v1/auth/forgot-password")
+                        .header("X-Requested-With", "XMLHttpRequest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("{\"email\":\"%s\"}", email)))
+                .andExpect(status().isNoContent()); // send #1
 
         for (int i = 0; i < 3; i++) { // sends #2, #3, #4
             mvc.perform(post("/api/v1/auth/resend-code")
                             .header("X-Requested-With", "XMLHttpRequest")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(body("{\"email\":\"%s\"}", email)))
+                            .content(body("{\"email\":\"%s\",\"purpose\":\"PASSWORD_RESET\"}", email)))
                     .andExpect(status().isNoContent());
         }
         // 5th send inside the window → cooldown kicks in (104 s)
         mvc.perform(post("/api/v1/auth/resend-code")
                         .header("X-Requested-With", "XMLHttpRequest")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("{\"email\":\"%s\"}", email)))
+                        .content(body("{\"email\":\"%s\",\"purpose\":\"PASSWORD_RESET\"}", email)))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.code").value("RATE_LIMITED"));
 
@@ -231,7 +168,7 @@ class AuthApiIT {
         mvc.perform(post("/api/v1/auth/resend-code")
                         .header("X-Requested-With", "XMLHttpRequest")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("{\"email\":\"ghost-%s@test.local\"}", UUID.randomUUID())))
+                        .content(body("{\"email\":\"ghost-%s@test.local\",\"purpose\":\"PASSWORD_RESET\"}", UUID.randomUUID())))
                 .andExpect(status().isNoContent());
     }
 
@@ -303,9 +240,9 @@ class AuthApiIT {
     }
 
     @Test
-    void googleLogin_linksUnverifiedLocalAccount() throws Exception {
+    void googleLogin_linksToLocalAccount() throws Exception {
         String email = "link-" + UUID.randomUUID() + "@test.local";
-        register(email, PASSWORD); // unverified — password login would 403
+        register(email, PASSWORD);
         when(google.verify("link-token"))
                 .thenReturn(new GoogleIdentityVerifier.GoogleIdentity(email, "Link User", true));
 
@@ -315,7 +252,7 @@ class AuthApiIT {
                         .content("{\"idToken\":\"link-token\"}"))
                 .andExpect(status().isOk());
 
-        // Google's verified claim settled the email — password login now works
+        // password login still works
         login(email, PASSWORD);
     }
 
@@ -454,11 +391,6 @@ class AuthApiIT {
 
     private void registerAndVerify(String email, String password) throws Exception {
         register(email, password);
-        mvc.perform(post("/api/v1/auth/verify-email")
-                        .header("X-Requested-With", "XMLHttpRequest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("{\"email\":\"%s\",\"code\":\"%s\"}", email, lastCodeSentTo(email))))
-                .andExpect(status().isOk());
     }
 
     private MvcResult login(String email, String password) throws Exception {

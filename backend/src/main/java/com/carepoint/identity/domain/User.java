@@ -58,9 +58,9 @@ public class User {
         this.updatedAt = Instant.now();
     }
 
-    /** Local password user — starts unverified until the email OTP passes. */
+    /** Local password user — verified by default. */
     public static User localUser(String email, String passwordHash, String fullName, String phone) {
-        return new User(email, fullName, phone, passwordHash, "LOCAL", false);
+        return new User(email, fullName, phone, passwordHash, "LOCAL", true);
     }
 
     /** OAuth user — no password; verified only if the provider attested the email. */

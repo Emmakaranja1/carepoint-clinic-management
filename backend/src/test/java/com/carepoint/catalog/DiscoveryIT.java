@@ -296,10 +296,10 @@ class DiscoveryIT {
                                 {"email":"%s","password":"%s","confirmPassword":"%s","fullName":"T"}
                                 """, email, PASSWORD, PASSWORD)))
                 .andExpect(status().isCreated());
-        MvcResult r = mvc.perform(post("/api/v1/auth/verify-email")
+        MvcResult r = mvc.perform(post("/api/v1/auth/login")
                         .header("X-Requested-With", "XMLHttpRequest")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("{\"email\":\"%s\",\"code\":\"%s\"}", email, lastCodeSentTo(email))))
+                        .content(body("{\"email\":\"%s\",\"password\":\"%s\"}", email, PASSWORD)))
                 .andExpect(status().isOk())
                 .andReturn();
         return new Cookie("cp_access", cookieValue(r, "cp_access"));
