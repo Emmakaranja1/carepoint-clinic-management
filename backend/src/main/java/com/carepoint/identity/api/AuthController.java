@@ -27,7 +27,6 @@ import com.carepoint.identity.api.dto.RegisterResponse;
 import com.carepoint.identity.api.dto.ResendCodeRequest;
 import com.carepoint.identity.api.dto.ResetPasswordRequest;
 import com.carepoint.identity.api.dto.UserResponse;
-import com.carepoint.identity.api.dto.VerifyEmailRequest;
 import com.carepoint.identity.application.AuthService;
 import com.carepoint.identity.domain.User;
 import com.carepoint.identity.persistence.UserRepository;
@@ -52,17 +51,12 @@ public class AuthController {
                 req.email(), req.password(), req.confirmPassword(), req.fullName(), req.phone());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new RegisterResponse(user.getId(), user.getEmail(),
-                        "Registration successful — we've emailed you a verification code"));
-    }
-
-    @PostMapping("/verify-email")
-    public ResponseEntity<UserResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest req) {
-        return session(auth.verifyEmail(req.email(), req.code()));
+                        "Registration successful — you can now sign in"));
     }
 
     @PostMapping("/resend-code")
     public ResponseEntity<Void> resendCode(@Valid @RequestBody ResendCodeRequest req) {
-        String purpose = req.purpose() == null ? "VERIFY_EMAIL" : req.purpose();
+        String purpose = req.purpose() == null ? "PASSWORD_RESET" : req.purpose();
         auth.resendCode(req.email(), purpose);
         return ResponseEntity.noContent().build();
     }

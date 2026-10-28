@@ -31,7 +31,7 @@ export function RegisterForm() {
         fullName: values.fullName,
         phone: values.phone || undefined,
       });
-      router.push(`/verify-email?email=${encodeURIComponent(values.email)}`);
+      router.push("/sign-in");
     } catch (e) {
       applyApiErrors(e, setError, setFormError);
     }

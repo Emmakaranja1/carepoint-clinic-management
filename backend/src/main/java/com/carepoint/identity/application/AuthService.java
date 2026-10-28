@@ -54,8 +54,8 @@ public class AuthService {
     /**
      * Patient self-registration. No role field exists — staff roles can only
      * come from clinic-admin endpoints, so privilege escalation by
-     * registration is structurally impossible. Account is created unverified
-     * and a verification code is mailed; login is gated on verification.
+     * registration is structurally impossible. Account is created verified
+     * and can immediately log in.
      */
     @Transactional
     public User register(String email, String password, String confirmPassword,
@@ -78,16 +78,15 @@ public class AuthService {
                 throw new ApiException(ErrorCode.EMAIL_TAKEN,
                         "An account with this email already exists");
             }
-            // Desk-created guest record claimed by its real owner — the
-            // emailed OTP still has to pass before login works.
+            // Desk-created guest record claimed by its real owner.
             guest.claimAsLocal(passwords.encode(password));
-            otp.send(email, guest.getId(), "VERIFY_EMAIL");
+            guest.markEmailVerified();
             return guest;
         }
         try {
             User user = users.save(User.localUser(email, passwords.encode(password), fullName, phone));
             users.flush();
-            otp.send(email, user.getId(), "VERIFY_EMAIL");
+            user.markEmailVerified();
             return user;
         } catch (DataIntegrityViolationException e) {
             // unique index still guards the register race
@@ -102,25 +101,13 @@ public class AuthService {
                 .filter(u -> passwords.matches(password, u.getPasswordHash()))
                 .orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password"));
 
-        if (!user.isEmailVerified()) {
-            throw new ApiException(ErrorCode.EMAIL_NOT_VERIFIED,
-                    "Email not verified — check your inbox for the code");
-        }
-        return authResultFor(user, null);
-    }
-
-    /** Completes registration: valid code → email verified → session issued. */
-    @Transactional
-    public AuthResult verifyEmail(String email, String code) {
-        UUID userId = otp.verify(email, "VERIFY_EMAIL", code);
-        User user = users.findById(userId)
-                .filter(User::isActive)
-                .orElseThrow(() -> new ApiException(ErrorCode.OTP_INVALID, "Invalid or expired code"));
-        user.markEmailVerified();
         return authResultFor(user, null);
     }
 
     public void resendCode(String email, String purpose) {
+        if (!"PASSWORD_RESET".equals(purpose)) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, "Invalid purpose");
+        }
         users.findByEmail(email)
                 .filter(User::isActive)
                 .ifPresent(u -> otp.send(email, u.getId(), purpose));

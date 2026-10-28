@@ -230,7 +230,7 @@ class DeskIT {
 
         assertThat(users.findByEmail(guestEmail).orElseThrow().isGuest()).isTrue();
 
-        // guest claims the record via normal registration → OTP → login
+        // guest claims the record via normal registration → login
         mvc.perform(post("/api/v1/auth/register")
                         .header("X-Requested-With", "XMLHttpRequest")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -238,11 +238,11 @@ class DeskIT {
                         {"email":"%s","password":"%s","confirmPassword":"%s","fullName":"Claimed"}
                         """.formatted(guestEmail, PASSWORD, PASSWORD)))
                 .andExpect(status().isCreated());
-        MvcResult verify = mvc.perform(post("/api/v1/auth/verify-email")
+        MvcResult verify = mvc.perform(post("/api/v1/auth/login")
                         .header("X-Requested-With", "XMLHttpRequest")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"%s\",\"code\":\"%s\"}"
-                                .formatted(guestEmail, lastCodeSentTo(guestEmail))))
+                        .content("{\"email\":\"%s\",\"password\":\"%s\"}"
+                                .formatted(guestEmail, PASSWORD)))
                 .andExpect(status().isOk())
                 .andReturn();
         Cookie claimed = new Cookie("cp_access", cookieValue(verify, "cp_access"));
@@ -498,11 +498,11 @@ class DeskIT {
                         {"email":"%s","password":"%s","confirmPassword":"%s","fullName":"T"}
                         """.formatted(email, PASSWORD, PASSWORD)))
                 .andExpect(status().isCreated());
-        MvcResult r = mvc.perform(post("/api/v1/auth/verify-email")
+        MvcResult r = mvc.perform(post("/api/v1/auth/login")
                         .header("X-Requested-With", "XMLHttpRequest")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"%s\",\"code\":\"%s\"}"
-                                .formatted(email, lastCodeSentTo(email))))
+                        .content("{\"email\":\"%s\",\"password\":\"%s\"}"
+                                .formatted(email, PASSWORD)))
                 .andExpect(status().isOk())
                 .andReturn();
         return new Cookie("cp_access", cookieValue(r, "cp_access"));

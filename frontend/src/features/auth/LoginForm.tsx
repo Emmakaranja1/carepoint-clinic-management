@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 
-import { ApiError } from "@/lib/api";
-
 import { GoogleButton } from "./GoogleButton";
 import { login } from "./api";
 import { loginSchema, type LoginValues } from "./schemas";
@@ -22,7 +20,6 @@ export function LoginForm() {
     register,
     handleSubmit,
     setError,
-    getValues,
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({
     resolver: standardSchemaResolver(loginSchema),
@@ -35,11 +32,6 @@ export function LoginForm() {
       setUser(user);
       router.push("/");
     } catch (e) {
-      // unverified account → send them to finish verification
-      if (e instanceof ApiError && e.code === "EMAIL_NOT_VERIFIED") {
-        router.push(`/verify-email?email=${encodeURIComponent(getValues("email"))}`);
-        return;
-      }
       applyApiErrors(e, setError, setFormError);
     }
   });
