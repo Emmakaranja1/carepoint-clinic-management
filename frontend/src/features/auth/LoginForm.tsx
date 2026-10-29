@@ -92,15 +92,7 @@ export function LoginForm({ notice, next = "/dashboard" }: { notice?: string | n
             </button>
           </div>
         </Field>
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-zinc-300 accent-brand-500"
-              {...register("rememberMe")}
-            />
-            Remember me
-          </label>
+        <div className="flex justify-end text-sm">
           <Link href="/forgot-password" className="text-brand-500 hover:underline dark:text-brand-300">
             Forgot password?
           </Link>
