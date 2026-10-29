@@ -58,6 +58,7 @@ public class SecurityConfig {
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/forgot-password", otpLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/resend-code", otpLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/verify-email", otpLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/auth/verify-reset-code", otpLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/reset-password", otpLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/google", otpLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/appointments", bookingLimit),
@@ -79,6 +80,7 @@ public class SecurityConfig {
                         "/api/v1/auth/verify-email",
                         "/api/v1/auth/resend-code",
                         "/api/v1/auth/forgot-password",
+                        "/api/v1/auth/verify-reset-code",
                         "/api/v1/auth/reset-password",
                         "/api/v1/auth/google")
                 .permitAll()

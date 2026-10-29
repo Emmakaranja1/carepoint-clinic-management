@@ -108,6 +108,31 @@ public class OtpService {
         return otp.getUserId();
     }
 
+    /**
+     * Same validation as {@link #verify} but leaves the code unconsumed —
+     * used to gate the reset form's password step. Wrong codes still burn
+     * an attempt.
+     */
+    @Transactional
+    public void check(String email, String purpose, String code) {
+        OtpCode otp = codes.findTopByEmailAndPurposeOrderByCreatedAtDesc(email, purpose)
+                .orElseThrow(() -> new ApiException(ErrorCode.OTP_INVALID, "Invalid or expired code"));
+
+        if (otp.isConsumed() || otp.isExpired(Instant.now())) {
+            throw new ApiException(ErrorCode.OTP_INVALID, "Invalid or expired code");
+        }
+        if (otp.getAttempts() >= props.maxAttempts()) {
+            throw new ApiException(ErrorCode.OTP_INVALID,
+                    "Too many attempts — request a new code");
+        }
+
+        codes.recordAttempt(otp.getId());
+        otp.recordAttempt();
+        if (!hash(code).equals(otp.getCodeHash())) {
+            throw new ApiException(ErrorCode.OTP_INVALID, "Invalid or expired code");
+        }
+    }
+
     private static String hash(String code) {
         try {
             return HexFormat.of().formatHex(

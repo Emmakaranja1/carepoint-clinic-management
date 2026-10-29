@@ -122,6 +122,11 @@ public class AuthService {
                 .ifPresent(u -> otp.send(email, u.getId(), "PASSWORD_RESET"));
     }
 
+    /** Validates a reset code without consuming it — gates the reset form's password step. */
+    public void verifyResetCode(String email, String code) {
+        otp.check(email, "PASSWORD_RESET", code);
+    }
+
     @Transactional
     public void resetPassword(String email, String code, String password, String confirmPassword) {
         var violations = passwordPolicy.violations(password);
