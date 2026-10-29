@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 
-import { api } from "@/lib/api";
+import { api, onSessionExpired } from "@/lib/api";
 
 /** Shape of GET /api/v1/auth/me — the session-hydration contract. */
 export interface SessionUser {
@@ -46,3 +46,5 @@ export const useSession = create<SessionState>((set) => ({
     }
   },
 }));
+
+onSessionExpired(() => useSession.setState({ user: null, status: "anonymous" }));
