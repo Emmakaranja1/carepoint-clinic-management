@@ -10,14 +10,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import com.carepoint.common.storage.StorageService;
 import com.carepoint.search.domain.DoctorSearchResult;
 
 @Repository
 public class SearchRepository {
 
     private final JdbcTemplate jdbc;
+    private final StorageService storage;
 
-    private static final RowMapper<DoctorSearchResult> DOCTOR_ROW_MAPPER = (rs, rowNum) ->
+    private final RowMapper<DoctorSearchResult> doctorRowMapper = (rs, rowNum) ->
         new DoctorSearchResult(
             rs.getObject("doctor_id", UUID.class),
             rs.getObject("clinic_id", UUID.class),
@@ -29,11 +31,16 @@ public class SearchRepository {
             rs.getString("location"),
             rs.getDouble("rating"),
             rs.getObject("next_available_slot", LocalDate.class),
-            rs.getString("photo_url")
+            publicUrl(rs.getString("photo_url"))
         );
 
-    public SearchRepository(JdbcTemplate jdbc) {
+    public SearchRepository(JdbcTemplate jdbc, StorageService storage) {
         this.jdbc = jdbc;
+        this.storage = storage;
+    }
+
+    private String publicUrl(String objectKey) {
+        return objectKey == null ? null : storage.publicUrl(objectKey);
     }
 
     public List<DoctorSearchResult> searchDoctors(
@@ -62,14 +69,15 @@ public class SearchRepository {
             INNER JOIN users u ON cm.user_id = u.id
             INNER JOIN clinics c ON dp.clinic_id = c.id
             INNER JOIN specialties s ON dp.specialty_id = s.id
-            LEFT JOIN media_objects m ON m.owner_type = 'DOCTOR' AND m.owner_id = dp.id AND m.purpose = 'DOCTOR_PHOTO'
+            LEFT JOIN media_objects m ON m.owner_type = 'DOCTOR_PROFILE' AND m.owner_id = dp.id
+                AND m.purpose = 'DOCTOR_PHOTO' AND m.status = 'ACTIVE'
             LEFT JOIN appointment_reviews r ON r.doctor_id = dp.id
             WHERE c.status = 'ACTIVE'
               AND cm.status = 'ACTIVE'
             """
         );
 
-        var params = new java.util.ArrayList<Object>();
+        var params = new ArrayList<Object>();
 
         if (query != null && !query.isBlank()) {
             sql.append(" AND (to_tsvector('english', u.full_name || ' ' || COALESCE(dp.bio, '')) @@ plainto_tsquery(?)");
@@ -97,7 +105,7 @@ public class SearchRepository {
         params.add(limit);
         params.add(offset);
 
-        return jdbc.query(sql.toString(), DOCTOR_ROW_MAPPER, params.toArray());
+        return jdbc.query(sql.toString(), doctorRowMapper, params.toArray());
     }
 
     public long countDoctors(String query, UUID specialtyId, String location) {
@@ -114,7 +122,7 @@ public class SearchRepository {
             """
         );
 
-        var params = new java.util.ArrayList<Object>();
+        var params = new ArrayList<Object>();
 
         if (query != null && !query.isBlank()) {
             sql.append(" AND (to_tsvector('english', u.full_name || ' ' || COALESCE(dp.bio, '')) @@ plainto_tsquery(?)");
@@ -157,14 +165,15 @@ public class SearchRepository {
             INNER JOIN users u ON cm.user_id = u.id
             INNER JOIN clinics c ON dp.clinic_id = c.id
             INNER JOIN specialties s ON dp.specialty_id = s.id
-            LEFT JOIN media_objects m ON m.owner_type = 'DOCTOR' AND m.owner_id = dp.id AND m.purpose = 'DOCTOR_PHOTO'
+            LEFT JOIN media_objects m ON m.owner_type = 'DOCTOR_PROFILE' AND m.owner_id = dp.id
+                AND m.purpose = 'DOCTOR_PHOTO' AND m.status = 'ACTIVE'
             LEFT JOIN appointment_reviews r ON r.doctor_id = dp.id
             WHERE dp.id = ?
             GROUP BY dp.id, dp.clinic_id, c.name, u.full_name, s.name, dp.bio, dp.consult_minutes, c.address, m.object_key
             """;
 
         return Optional.ofNullable(
-            jdbc.queryForObject(sql, DOCTOR_ROW_MAPPER, doctorId)
+            jdbc.queryForObject(sql, doctorRowMapper, doctorId)
         );
     }
 }

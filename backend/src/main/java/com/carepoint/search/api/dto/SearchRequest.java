@@ -4,11 +4,9 @@ import java.util.UUID;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record SearchRequest(
-    @NotBlank(message = "Query is required")
     @Size(max = 200, message = "Query must not exceed 200 characters")
     String query,
 
