@@ -3,12 +3,13 @@
 import { useEffect } from "react";
 import Link from "next/link";
 
+import { AccountMenu } from "@/components/AccountMenu";
 import { Logo } from "@/components/Logo";
 import { useSession } from "@/features/auth/session";
 
 const navLinks = [
   ["Home", "/"],
-  ["Find a Doctor", "/doctors"],
+  ["Find a Doctor", "/dashboard"],
   ["Services", "/#services"],
   ["About", "/#about"],
   ["Contact", "/#contact"],
@@ -19,6 +20,9 @@ export function Header() {
 
   useEffect(() => {
     void hydrate();
+    const revalidate = () => document.visibilityState === "visible" && void hydrate();
+    document.addEventListener("visibilitychange", revalidate);
+    return () => document.removeEventListener("visibilitychange", revalidate);
   }, [hydrate]);
 
   return (
@@ -48,52 +52,12 @@ export function Header() {
             </>
           )}
           {status === "authenticated" && user && (
-            <>
-              <span className="text-zinc-600 dark:text-zinc-400">{user.fullName}</span>
-              <button
-                onClick={() => void logout()}
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
-              >
-                Sign out
-              </button>
-            </>
+            <AccountMenu user={user} onSignOut={() => void logout()} />
           )}
         </nav>
       </div>
 
-      <div className="border-t border-zinc-100">
-        <div className="mx-auto max-w-7xl px-6 py-4 lg:px-10">
-          <form
-            action="/doctors"
-            className="flex flex-wrap items-center gap-3 sm:flex-nowrap"
-          >
-            <div className="flex flex-1 items-stretch gap-0 rounded-full border-2 border-zinc-200 bg-white p-1 shadow-md">
-              <div className="flex-1 px-4">
-                <input
-                  name="q"
-                  placeholder="Search doctor, specialty or condition"
-                  className="w-full border-0 bg-transparent py-3 text-base text-zinc-900 outline-none placeholder:text-zinc-500"
-                />
-              </div>
-              <button
-                type="submit"
-                className="rounded-full bg-brand-500 px-8 py-3 text-base font-semibold text-white transition-all hover:bg-brand-600"
-              >
-                Search
-              </button>
-            </div>
-            <select
-              name="specialty"
-              className="rounded-lg border-2 border-zinc-200 bg-white px-4 py-3 text-base text-zinc-900 outline-none"
-            >
-              <option value="">Specialty</option>
-            </select>
-            <span className="hidden rounded-lg border-2 border-zinc-200 bg-white px-4 py-3 text-base text-zinc-900 md:flex">
-              Nairobi, Kenya
-            </span>
-          </form>
-        </div>
-      </div>
+
     </header>
   );
 }
