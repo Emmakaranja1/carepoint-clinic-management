@@ -9,7 +9,7 @@ public record AuthProperties(
         String jwtIssuer,
         String jwtSigningKey,
         Duration accessTokenTtl,
-        Duration refreshTokenTtl,
+        Duration sessionIdleTimeout,
         String accessCookie,
         String refreshCookie,
         boolean cookieSecure) {

@@ -30,7 +30,7 @@ public class AuthCookies {
     }
 
     public String refreshCookie(String token) {
-        return build(props.refreshCookie(), token, props.refreshTokenTtl());
+        return build(props.refreshCookie(), token, props.sessionIdleTimeout());
     }
 
     public String clearAccessCookie() {
