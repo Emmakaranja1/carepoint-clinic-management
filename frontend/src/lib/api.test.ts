@@ -64,6 +64,20 @@ describe("api session refresh", () => {
     unsubscribe();
   });
 
+  it("refreshes for authenticated account endpoints", async () => {
+    let authed = false;
+    const fetchMock = mockFetch((url) => {
+      if (url.endsWith("/auth/refresh")) {
+        authed = true;
+        return new Response(null, { status: 204 });
+      }
+      return authed ? new Response(null, { status: 204 }) : json(401);
+    });
+
+    await api("/auth/change-password", { method: "POST", body: {} });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it("does not refresh for credential endpoints", async () => {
     const fetchMock = mockFetch(() => json(401, { code: "INVALID_CREDENTIALS" }));
 
