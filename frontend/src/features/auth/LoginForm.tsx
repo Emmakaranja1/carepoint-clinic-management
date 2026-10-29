@@ -12,7 +12,7 @@ import { loginSchema, type LoginValues } from "./schemas";
 import { useSession } from "./session";
 import { Field, applyApiErrors, inputClass, submitClass } from "./ui";
 
-export function LoginForm({ notice }: { notice?: string | null }) {
+export function LoginForm({ notice, next = "/dashboard" }: { notice?: string | null; next?: string }) {
   const router = useRouter();
   const setUser = useSession((s) => s.setUser);
   const [formError, setFormError] = useState("");
@@ -25,7 +25,7 @@ export function LoginForm({ notice }: { notice?: string | null }) {
     }
     const timer = setTimeout(() => {
       setNoticeVisible(false);
-      router.replace("/login");
+      router.replace(next === "/dashboard" ? "/login" : `/login?next=${encodeURIComponent(next)}`);
     }, 6000);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- router is stable
@@ -44,7 +44,7 @@ export function LoginForm({ notice }: { notice?: string | null }) {
     try {
       const user = await login(values.email, values.password);
       setUser(user);
-      router.push("/");
+      router.push(next);
     } catch (e) {
       applyApiErrors(e, setError, setFormError);
     }
@@ -116,7 +116,7 @@ export function LoginForm({ notice }: { notice?: string | null }) {
         <GoogleButton
           onSuccess={(user) => {
             setUser(user);
-            router.push("/");
+            router.push(next);
           }}
           onError={setFormError}
         />

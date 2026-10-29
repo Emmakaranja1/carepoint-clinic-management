@@ -7,9 +7,12 @@ export const metadata: Metadata = { title: "Sign in" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ registered?: string; reset?: string }>;
+  searchParams: Promise<{ registered?: string; reset?: string; next?: string }>;
 }) {
-  const { registered, reset } = await searchParams;
+  const { registered, reset, next: nextParam } = await searchParams;
+  const next = nextParam?.startsWith("/") && !nextParam.startsWith("//")
+    ? nextParam
+    : "/dashboard";
   return (
     <>
       <h1 className="mb-3 text-3xl font-bold text-heading">Welcome Back</h1>
@@ -17,6 +20,7 @@ export default async function LoginPage({
         Log in to your account to continue
       </p>
       <LoginForm
+        next={next}
         notice={
           registered === "1"
             ? "Your account was created successfully. Sign in with your email and password."
