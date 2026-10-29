@@ -130,5 +130,12 @@ public class User {
 
     public void changePassword(String passwordHash) {
         this.passwordHash = passwordHash;
+        this.updatedAt = Instant.now();
+    }
+
+    public void updateProfile(String fullName, String phone) {
+        this.fullName = fullName;
+        this.phone = phone;
+        this.updatedAt = Instant.now();
     }
 }
