@@ -32,7 +32,29 @@ interface RequestOptions {
   timeoutMs?: number;
 }
 
-export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+let refreshing: Promise<boolean> | null = null;
+const expiredListeners = new Set<() => void>();
+
+export function onSessionExpired(listener: () => void) {
+  expiredListeners.add(listener);
+  return () => void expiredListeners.delete(listener);
+}
+
+function refreshSession() {
+  refreshing ??= fetch("/api/v1/auth/refresh", {
+    method: "POST",
+    headers: { "X-Requested-With": "XMLHttpRequest" },
+    credentials: "include",
+  })
+    .then((res) => res.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
+async function send(path: string, opts: RequestOptions) {
   const { method = "GET", body, idempotencyKey, timeoutMs = 15_000 } = opts;
   const headers: Record<string, string> = {};
   if (method !== "GET") {
@@ -47,9 +69,8 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  let res: Response;
   try {
-    res = await fetch(`/api/v1${path}`, {
+    return await fetch(`/api/v1${path}`, {
       method,
       headers,
       credentials: "include",
@@ -60,6 +81,18 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
     throw new ApiError("NETWORK_ERROR", "Could not reach the server");
   } finally {
     clearTimeout(timer);
+  }
+}
+
+export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+  let res = await send(path, opts);
+  if (res.status === 401 && (path === "/auth/me" || !path.startsWith("/auth/"))) {
+    if (await refreshSession()) {
+      res = await send(path, opts);
+    }
+    if (res.status === 401) {
+      expiredListeners.forEach((listener) => listener());
+    }
   }
 
   if (res.status === 204) {
