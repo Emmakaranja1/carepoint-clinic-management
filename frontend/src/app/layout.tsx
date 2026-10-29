@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 
-import { Header } from "@/components/Header";
-
 import "./globals.css";
 
 const inter = Inter({
@@ -33,7 +31,6 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} flex min-h-screen flex-col antialiased`}
       >
-        <Header />
         {children}
       </body>
     </html>
