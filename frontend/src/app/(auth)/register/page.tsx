@@ -13,7 +13,7 @@ export default function RegisterPage() {
   const { hydrate } = useSession();
   const [error, setError] = useState("");
 
-  const handleGoogleSuccess = async (_user: { fullName: string; email: string }) => {
+  const handleGoogleSuccess = async () => {
     // user is from Google sign-in; hydrate() refreshes the session from cookies
     await hydrate();
     router.push("/");
@@ -34,13 +34,13 @@ export default function RegisterPage() {
           {error}
         </p>
       )}
-      <GoogleButton onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+      <RegisterForm />
       <div className="my-8 flex items-center gap-4">
         <div className="flex-1 border-t border-zinc-200 dark:border-zinc-800" />
         <span className="text-sm text-zinc-400">or</span>
         <div className="flex-1 border-t border-zinc-200 dark:border-zinc-800" />
       </div>
-      <RegisterForm />
+      <GoogleButton onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
       <p className="mt-6 text-center text-base text-zinc-500">
         Already registered?{" "}
         <Link href="/login" className="text-brand-600 hover:underline dark:text-brand-300">

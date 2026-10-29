@@ -27,6 +27,7 @@ import com.carepoint.identity.api.dto.RegisterResponse;
 import com.carepoint.identity.api.dto.ResendCodeRequest;
 import com.carepoint.identity.api.dto.ResetPasswordRequest;
 import com.carepoint.identity.api.dto.UserResponse;
+import com.carepoint.identity.api.dto.VerifyResetCodeRequest;
 import com.carepoint.identity.application.AuthService;
 import com.carepoint.identity.domain.User;
 import com.carepoint.identity.persistence.UserRepository;
@@ -64,6 +65,12 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
         auth.forgotPassword(req.email());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/verify-reset-code")
+    public ResponseEntity<Void> verifyResetCode(@Valid @RequestBody VerifyResetCodeRequest req) {
+        auth.verifyResetCode(req.email(), req.code());
         return ResponseEntity.noContent().build();
     }
 

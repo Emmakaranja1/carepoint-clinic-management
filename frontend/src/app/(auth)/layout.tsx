@@ -9,14 +9,14 @@ import { Logo } from "@/components/Logo";
  */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <main className="flex flex-1 bg-canvas dark:bg-zinc-950">
+    <main className="flex flex-1 bg-white dark:bg-zinc-950">
       <section className="flex flex-1 flex-col items-center px-6 py-16">
         <div className="w-full max-w-sm">
           <Logo />
           <div className="mt-12">{children}</div>
         </div>
       </section>
-      <aside className="relative m-4 hidden w-2/5 overflow-hidden rounded-3xl lg:block">
+      <aside className="relative hidden w-2/5 overflow-hidden lg:block">
         <Image
           src="/Modern Glass Medical Office Entrance.png"
           alt="Modern Glass Medical Office Entrance"
@@ -24,8 +24,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <div className="absolute inset-0 flex flex-col justify-end p-10 text-white">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-transparent" />
+        <div className="absolute inset-0 flex flex-col justify-start p-10 text-white">
           <h2 className="max-w-xs text-3xl font-bold leading-tight">
             Quality Healthcare Made Simple
           </h2>
