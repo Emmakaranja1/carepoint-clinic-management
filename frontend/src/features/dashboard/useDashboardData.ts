@@ -5,7 +5,8 @@ import { useCallback, useState } from "react";
 import { ApiError } from "@/lib/api";
 import { cancelAppointment, myAppointments, type Appointment } from "@/features/appointments/api";
 import { myClinics, type ClinicMembership } from "@/features/clinics/api";
-import { getDoctor, type DoctorSearchResult } from "@/features/discovery/api";
+import type { DoctorSearchResult } from "@/features/discovery/api";
+import { loadDoctors } from "./doctorLookup";
 
 function message(reason: unknown, fallback: string) {
   return reason instanceof ApiError ? reason.message : fallback;
@@ -13,16 +14,6 @@ function message(reason: unknown, fallback: string) {
 
 function distinctDoctors(appointments: Appointment[]) {
   return new Set(appointments.filter((a) => a.status !== "CANCELLED").map((a) => a.doctorId)).size;
-}
-
-async function loadDoctors(appointments: Appointment[]) {
-  const ids = [...new Set(appointments.map((a) => a.doctorId))];
-  const results = await Promise.allSettled(ids.map(getDoctor));
-  const doctors: Record<string, DoctorSearchResult> = {};
-  results.forEach((result, i) => {
-    if (result.status === "fulfilled") doctors[ids[i]] = result.value;
-  });
-  return doctors;
 }
 
 export function useDashboardData() {
