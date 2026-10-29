@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 
 import { ApiError } from "@/lib/api";
+import { Avatar } from "@/features/dashboard/Avatar";
 import {
   listSpecialties,
   searchDoctors,
@@ -15,23 +17,18 @@ const inputClass =
   "w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 " +
   "outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20";
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
+const nextFormatter = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+function nextDate(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? value : nextFormatter.format(date);
 }
 
 function DoctorCard({ doctor }: { doctor: DoctorSearchResult }) {
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex items-start gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-100 text-lg font-bold text-brand-700">
-          {initials(doctor.doctorName)}
-        </div>
+        <Avatar name={doctor.doctorName} photoUrl={doctor.photoUrl} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
@@ -49,6 +46,17 @@ function DoctorCard({ doctor }: { doctor: DoctorSearchResult }) {
             <span>{doctor.clinicName}</span>
             {doctor.location && <span>{doctor.location}</span>}
             <span>{doctor.rating > 0 ? `${doctor.rating.toFixed(1)} rating` : "No reviews yet"}</span>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <span className="text-sm text-zinc-500">
+              {doctor.nextAvailableSlot ? `Next available ${nextDate(doctor.nextAvailableSlot)}` : "No open slots listed"}
+            </span>
+            <Link
+              href={`/dashboard/doctors/${doctor.doctorId}`}
+              className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+            >
+              Book appointment
+            </Link>
           </div>
         </div>
       </div>
