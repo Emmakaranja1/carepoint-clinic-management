@@ -18,7 +18,11 @@ export const registerSchema = z
   .object({
     email: emailSchema,
     fullName: z.string().min(1, "Required").max(120),
-    phone: z.string().max(30).optional().or(z.literal("")),
+    phone: z
+      .string()
+      .regex(/^\+2547\d{8}$/, "Enter a valid number, e.g. +254712345678")
+      .optional()
+      .or(z.literal("")),
     password: passwordSchema,
     confirmPassword: z.string(),
   })

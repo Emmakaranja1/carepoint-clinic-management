@@ -40,6 +40,14 @@ export function forgotPassword(email: string) {
   });
 }
 
+/** POST /auth/verify-reset-code → 204; validates the code without consuming it. */
+export function verifyResetCode(email: string, code: string) {
+  return api<void>("/auth/verify-reset-code", {
+    method: "POST",
+    body: { email, code },
+  });
+}
+
 /** POST /auth/reset-password → 204; all sessions revoked server-side. */
 export function resetPassword(body: {
   email: string;
