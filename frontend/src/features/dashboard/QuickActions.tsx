@@ -1,12 +1,11 @@
 import Link from "next/link";
 
-import { focusHeaderSearch } from "./HeaderSearch";
 import { CalendarIcon, DocumentIcon, SupportIcon, UserIcon } from "./icons";
 
 const actions = [
-  { label: "Book Appointment", icon: CalendarIcon },
-  { label: "Find a Doctor", icon: UserIcon },
-  { label: "View Medical Records", href: "#appointments-heading", icon: DocumentIcon },
+  { label: "Book Appointment", href: "/dashboard/doctors", icon: CalendarIcon },
+  { label: "Find a Doctor", href: "/dashboard/doctors", icon: UserIcon },
+  { label: "View Visit History", href: "/dashboard/health", icon: DocumentIcon },
   { label: "Contact Support", href: "/#contact", icon: SupportIcon },
 ];
 
@@ -42,17 +41,10 @@ export function QuickActions() {
         <ul className="mt-5 space-y-3">
           {actions.map(({ label, href, icon: Icon }) => (
             <li key={label}>
-              {href ? (
-                <Link href={href} className={actionClass}>
-                  <Icon className="h-5 w-5 text-brand-500" />
-                  {label}
-                </Link>
-              ) : (
-                <button type="button" onClick={focusHeaderSearch} className={actionClass}>
-                  <Icon className="h-5 w-5 text-brand-500" />
-                  {label}
-                </button>
-              )}
+              <Link href={href} className={actionClass}>
+                <Icon className="h-5 w-5 text-brand-500" />
+                {label}
+              </Link>
             </li>
           ))}
         </ul>

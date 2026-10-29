@@ -10,6 +10,8 @@
  *   in ApiError so forms can map field errors directly.
  */
 
+import { refreshSession } from "./sessionRefresh";
+
 export class ApiError extends Error {
   constructor(
     public readonly code: string,
@@ -32,26 +34,23 @@ interface RequestOptions {
   timeoutMs?: number;
 }
 
-let refreshing: Promise<boolean> | null = null;
+const CREDENTIAL_PATHS = new Set([
+  "/auth/login",
+  "/auth/register",
+  "/auth/google",
+  "/auth/refresh",
+  "/auth/logout",
+  "/auth/forgot-password",
+  "/auth/verify-reset-code",
+  "/auth/reset-password",
+  "/auth/resend-code",
+]);
+
 const expiredListeners = new Set<() => void>();
 
 export function onSessionExpired(listener: () => void) {
   expiredListeners.add(listener);
   return () => void expiredListeners.delete(listener);
-}
-
-function refreshSession() {
-  refreshing ??= fetch("/api/v1/auth/refresh", {
-    method: "POST",
-    headers: { "X-Requested-With": "XMLHttpRequest" },
-    credentials: "include",
-  })
-    .then((res) => res.ok)
-    .catch(() => false)
-    .finally(() => {
-      refreshing = null;
-    });
-  return refreshing;
 }
 
 async function send(path: string, opts: RequestOptions) {
@@ -86,7 +85,7 @@ async function send(path: string, opts: RequestOptions) {
 
 export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   let res = await send(path, opts);
-  if (res.status === 401 && (path === "/auth/me" || !path.startsWith("/auth/"))) {
+  if (res.status === 401 && !CREDENTIAL_PATHS.has(path)) {
     if (await refreshSession()) {
       res = await send(path, opts);
     }

@@ -34,8 +34,6 @@ export const registerSchema = z
 export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Required"),
-  /** Cosmetic for now — the backend always issues a 30d refresh cookie. */
-  rememberMe: z.boolean().optional(),
 });
 
 export const verifyEmailSchema = z.object({

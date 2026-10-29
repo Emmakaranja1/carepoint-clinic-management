@@ -9,6 +9,8 @@ export interface SessionUser {
   id: string;
   email: string;
   fullName: string;
+  phone: string | null;
+  passwordSet: boolean;
   /** clinicId → role (DOCTOR | RECEPTIONIST | CLINIC_ADMIN); empty = patient */
   clinicRoles: Record<string, string>;
 }

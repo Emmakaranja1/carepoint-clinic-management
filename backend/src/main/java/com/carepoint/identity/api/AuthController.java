@@ -125,7 +125,6 @@ public class AuthController {
     }
 
     private UserResponse toResponse(User user) {
-        return new UserResponse(
-                user.getId(), user.getEmail(), user.getFullName(), auth.activeRoles(user.getId()));
+        return UserResponse.of(user, auth.activeRoles(user.getId()));
     }
 }

@@ -50,3 +50,15 @@ export function searchDoctors(params: {
   search.set("size", String(params.size ?? 12));
   return api<DoctorSearchPage>(`/search/doctors?${search}`);
 }
+
+export interface Slot {
+  start: string;
+  end: string;
+}
+
+export function getAvailability(clinicId: string, doctorId: string, from: string, to: string) {
+  const search = new URLSearchParams({ from, to });
+  return api<Slot[]>(
+    `/clinics/${encodeURIComponent(clinicId)}/doctors/${encodeURIComponent(doctorId)}/availability?${search}`,
+  );
+}

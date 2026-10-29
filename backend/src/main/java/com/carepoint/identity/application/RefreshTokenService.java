@@ -44,7 +44,7 @@ public class RefreshTokenService {
     private Issued issue(UUID userId, UUID familyId) {
         String raw = generate();
         RefreshToken t = new RefreshToken(
-                userId, familyId, hash(raw), Instant.now().plus(props.refreshTokenTtl()));
+                userId, familyId, hash(raw), Instant.now().plus(props.sessionIdleTimeout()));
         tokens.save(t);
         return new Issued(raw, userId);
     }
@@ -64,7 +64,7 @@ public class RefreshTokenService {
             throw new ApiException(ErrorCode.TOKEN_INVALID, "Invalid refresh token");
         }
         if (stored.isExpired(Instant.now())) {
-            throw new ApiException(ErrorCode.TOKEN_EXPIRED, "Session expired — log in again");
+            throw new ApiException(ErrorCode.TOKEN_EXPIRED, "Session timed out — log in again");
         }
 
         stored.revoke();

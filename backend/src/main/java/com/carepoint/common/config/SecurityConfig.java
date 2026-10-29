@@ -54,6 +54,7 @@ public class SecurityConfig {
 
         RateLimitFilter rateLimits = new RateLimitFilter(List.of(
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/login", loginLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/auth/change-password", loginLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/register", registerLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/forgot-password", otpLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/resend-code", otpLimit),

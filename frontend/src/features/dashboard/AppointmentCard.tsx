@@ -5,25 +5,26 @@ import { Avatar } from "./Avatar";
 const dateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "2-digit", year: "numeric" });
 const timeFormatter = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit" });
 
-function appointmentWhen(start: string) {
+export function appointmentWhen(start: string) {
   const date = new Date(start);
   return Number.isNaN(date.getTime())
     ? "Date unavailable"
     : `${dateFormatter.format(date)} • ${timeFormatter.format(date)}`;
 }
 
-const statuses: Record<string, { label: string; className: string }> = {
+export const statuses: Record<string, { label: string; className: string }> = {
   BOOKED: { label: "Confirmed", className: "bg-emerald-50 text-mint-foreground" },
   COMPLETED: { label: "Completed", className: "bg-brand-50 text-brand-700" },
   CANCELLED: { label: "Cancelled", className: "bg-zinc-100 text-zinc-600" },
   NO_SHOW: { label: "No show", className: "bg-amber-50 text-amber-700" },
 };
 
-export function AppointmentCard({ appointment, doctor, onCancel, cancelling }: {
+export function AppointmentCard({ appointment, doctor, onCancel, cancelling = false, detailed = false }: {
   appointment: Appointment;
   doctor?: DoctorSearchResult;
-  onCancel: (id: string) => void;
-  cancelling: boolean;
+  onCancel?: (id: string) => void;
+  cancelling?: boolean;
+  detailed?: boolean;
 }) {
   const status = statuses[appointment.status] ?? { label: appointment.status, className: "bg-zinc-100 text-zinc-600" };
   const name = doctor?.doctorName ?? "Your doctor";
@@ -35,10 +36,16 @@ export function AppointmentCard({ appointment, doctor, onCancel, cancelling }: {
         <h3 className="truncate text-lg font-semibold text-heading">{name}</h3>
         <p className="truncate text-base text-zinc-500">{doctor?.specialtyName ?? "Consultation"}</p>
         <p className="mt-2 text-sm text-zinc-500">{appointmentWhen(appointment.start)}</p>
+        {detailed && (
+          <p className="mt-1 truncate text-sm text-zinc-500">
+            {doctor?.clinicName ?? "Clinic"}
+            {appointment.reason?.trim() && ` · ${appointment.reason.trim()}`}
+          </p>
+        )}
       </div>
       <div className="flex flex-col items-end gap-2">
         <span className={`rounded-lg px-4 py-1.5 text-sm font-semibold ${status.className}`}>{status.label}</span>
-        {appointment.status === "BOOKED" && (
+        {appointment.status === "BOOKED" && onCancel && (
           <button
             type="button"
             onClick={() => onCancel(appointment.id)}
