@@ -16,7 +16,15 @@ function firstName(fullName: string) {
   return fullName.trim().split(/[\s.]+/)[0] || "there";
 }
 
-export function AccountMenu({ user, onSignOut }: { user: SessionUser; onSignOut: () => void }) {
+export function AccountMenu({
+  user,
+  onSignOut,
+  tone = "light",
+}: {
+  user: SessionUser;
+  onSignOut: () => void;
+  tone?: "light" | "dark";
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -43,7 +51,11 @@ export function AccountMenu({ user, onSignOut }: { user: SessionUser; onSignOut:
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-lg px-2 py-2 font-medium text-zinc-700 hover:text-brand-600"
+        className={`flex items-center gap-2 rounded-lg px-2 py-2 ${
+          tone === "dark"
+            ? "text-[1.02rem] font-bold text-white/90 hover:text-white"
+            : "font-medium text-zinc-700 hover:text-brand-600"
+        }`}
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="10" cy="8" r="4" />
