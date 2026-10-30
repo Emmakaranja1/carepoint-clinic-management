@@ -4,20 +4,21 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f2f8fd;
-  --foreground: #334155;
+  --background: #f3eee6;
+  --foreground: #3a4454;
+  --page-gutter: clamp(1.25rem, 4vw, 4rem);
+  --page-max: 96rem;
 }
 
-/* Brand tokens sampled from the UI reference (public/CarePoint Healthcare UI Showcase.png) */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
+  --font-display: var(--font-fraunces);
   --font-mono: var(--font-jetbrains-mono);
 }
 
 @theme {
-  /* action blue — buttons, links, logo */
   --color-brand-50: #eef5fd;
   --color-brand-100: #d7e8fc;
   --color-brand-300: #8ab9fa;
@@ -26,16 +27,63 @@
   --color-brand-600: #085fdf;
   --color-brand-700: #074db6;
 
-  /* surfaces & text */
-  --color-canvas: #f2f8fd;
-  --color-heading: #01194d;
-  --color-navy: #111f34;
+  --color-canvas: #f6f3ed;
+  --color-paper: #ebe4d6;
+  --color-heading: #071225;
+  --color-navy: #0b1624;
+  --color-ink: #334155;
 
-  /* status accent — confirmed / available chips */
+  --color-brass: #8a5a32;
+  --color-brass-soft: #f0e4d4;
+
   --color-mint: #67cebb;
   --color-mint-foreground: #17866d;
 }
 
+@utility page-container {
+  width: 100%;
+  max-width: calc(var(--page-max) + 2 * var(--page-gutter));
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
+}
+
+@utility page-grid {
+  --page-content: min(100% - 2 * var(--page-gutter), var(--page-max));
+  display: grid;
+  grid-template-columns:
+    [bleed-start] minmax(var(--page-gutter), 1fr)
+    [content-start] calc(var(--page-content) * var(--split, 0.5))
+    [split] calc(var(--page-content) * (1 - var(--split, 0.5)))
+    [content-end] minmax(var(--page-gutter), 1fr)
+    [bleed-end];
+}
+
+@utility section-y {
+  padding-block: clamp(4rem, 3rem + 4vw, 7rem);
+}
+
+@utility hero-grid {
+  background-image:
+    linear-gradient(to right, rgb(11 22 36 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(11 22 36 / 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 30%, transparent 75%);
+}
+
+@utility hero-dots {
+  background-image: radial-gradient(var(--color-brand-300) 1.4px, transparent 1.4px);
+  background-size: 14px 14px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
 
 body {
   background: var(--background);
@@ -43,4 +91,104 @@ body {
   font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   font-size: 16px;
   line-height: 1.6;
+}
+
+::selection {
+  background: #d7e8fc;
+  color: #071225;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 3px;
+}
+
+.home-reveal {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .home-reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 0.55s ease,
+      transform 0.55s ease;
+  }
+
+  .home-reveal[data-visible="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .home-card {
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .home-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .hero-rise {
+    animation: hero-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .hero-float {
+    animation: hero-float 6s ease-in-out infinite;
+  }
+
+  .hero-ping {
+    animation: hero-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .home-reveal[data-visible="true"] .ecg-line path {
+    stroke-dasharray: 420;
+    stroke-dashoffset: 420;
+    animation: hero-draw 1.6s 0.3s ease-out forwards;
+  }
+
+  .hero-underline path {
+    stroke-dasharray: 320;
+    stroke-dashoffset: 320;
+    animation: hero-draw 0.9s 0.5s ease-out forwards;
+  }
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes hero-ping {
+  75%,
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@keyframes hero-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
