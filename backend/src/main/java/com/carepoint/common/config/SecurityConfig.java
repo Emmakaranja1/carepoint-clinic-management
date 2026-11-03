@@ -54,6 +54,7 @@ public class SecurityConfig {
 
         RateLimitFilter rateLimits = new RateLimitFilter(List.of(
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/login", loginLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/auth/clinic-admin/login", loginLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/change-password", loginLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/register", registerLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/forgot-password", otpLimit),
@@ -76,6 +77,7 @@ public class SecurityConfig {
                         "/actuator/health", "/actuator/health/**",
                         "/api/v1/auth/register",
                         "/api/v1/auth/login",
+                        "/api/v1/auth/clinic-admin/login",
                         "/api/v1/auth/refresh",
                         "/api/v1/auth/logout",
                         "/api/v1/auth/verify-email",
