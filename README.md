@@ -70,6 +70,18 @@ isolation treated as headline engineering properties, not afterthoughts**.
 - 📊 Clinic reporting: appointment counts, utilization, no-show rate
 - 🖼️ Staff-managed media: doctor photos and clinic logos via object storage
 
+**Clinic administrator workspace** *(implemented — `/clinic-admin`)*:
+
+- 🔐 Dedicated admin sign-in, separate from the patient experience; no
+  public admin or clinic sign-up
+- 📋 Operational overview from live data: today's appointments, last-30-day
+  totals, no-show rate, per-doctor utilisation, staff counts, clinic settings
+- 👥 Staff management: search/filter the clinic's staff, invite
+  receptionists, resend invitations, deactivate and reactivate access
+- ✉️ Secure onboarding: single-use, expiring invitation links — staff set
+  their own password; admins never see or share one
+- 🧾 Audit trail of every staff change, shown as a recent-activity feed
+
 **Deliberately out of scope** — *decided, not omitted:*
 
 - Medical records, diagnoses, prescriptions, clinical notes
@@ -118,6 +130,22 @@ journey
       Manage staff roles per clinic: 4: Admin
       Upload clinic logo and doctor photos: 4: Admin
       Review utilization and no-show report: 4: Admin
+```
+
+```mermaid
+journey
+    title Clinic admin: onboard a receptionist
+    section Admin
+      Sign in at /clinic-admin: 5: Admin
+      Staff → Add staff → enter details: 5: Admin
+      Create account and send invitation: 5: Admin
+    section Receptionist
+      Open the emailed link: 4: Receptionist
+      Set own password: 5: Receptionist
+      Account active: 5: Receptionist
+    section Admin
+      See status change to Active: 5: Admin
+      Deactivate access when needed: 4: Admin
 ```
 
 ## 4. Architecture
@@ -228,19 +256,56 @@ Measured, not asserted:
   membership matching the `clinicId` in the path — cross-tenant access
   returns `404`, so existence isn't leaked. Patients can only touch their
   own rows. Privileged roles are granted exclusively through admin
-  endpoints; the registration payload has no role field to abuse.
+  endpoints; the registration payload has no role field to abuse. There is
+  no public endpoint that creates clinics — tenants and their first
+  administrator are provisioned server-side.
+- **Admin portal sign-in** (`POST /auth/clinic-admin/login`) issues a
+  session only to an active `CLINIC_ADMIN` of an active clinic; patients,
+  receptionists, doctors, deactivated admins and suspended clinics are
+  refused without any cookies being set. Signing in revokes the previous
+  session. Roles are re-read from the database on every request, so a
+  deactivation takes effect immediately.
 - **Rate limiting**: tight limits on login/register (credential stuffing),
   booking (slot hoarding), availability (scraping) and uploads.
 - **Hygiene**: parameterized queries only; Bean Validation at every API
   boundary; a stable error-code envelope (`SLOT_TAKEN`,
   `CANCELLATION_WINDOW_PASSED`, `RATE_LIMITED`, …) with no stack leakage;
   structured logs carrying IDs, never tokens, bodies or free text.
-- **Audit**: appointment mutations and role grants write append-only
-  audit events.
+- **Audit**: staff operations (added, invitation sent/accepted, role and
+  status changes, admin provisioning) write append-only `audit_events`
+  in the same transaction as the change. Appointments record `created_by`
+  and `cancelled_at`; writing appointment mutations to `audit_events` is
+  *planned*.
 - **Honest boundary**: this is a portfolio/demo system running on
   fictional data. It does **not** claim HIPAA, GDPR, or any other
   healthcare-regulation compliance — that requires a formal assessment
   before real patient data is ever involved.
+
+### Staff onboarding
+
+```mermaid
+sequenceDiagram
+    participant Admin as Clinic admin
+    participant API as Backend
+    participant DB as Postgres
+    participant Mail as Mail provider
+    participant Staff as Invitee browser
+
+    Admin->>API: POST /clinics/{clinicId}/staff (clinic from path, never body)
+    API->>DB: user + membership + invitation(SHA-256 of token) + audit — one transaction
+    API->>Mail: link …/invite/accept#token=… (expires in 72 h)
+    Staff->>API: POST /invitations/accept {token, password}
+    API->>DB: lock invitation row, set Argon2id hash, consume token, revoke sessions, audit
+    API-->>Staff: 204 — account active
+```
+
+- The raw token exists only in the email; the database stores its hash.
+  It rides in the URL **fragment**, so it never reaches server or proxy
+  logs, and the page strips it from browser history on load.
+- Links are single-use (row lock on accept), expire after 72 h, are revoked
+  when re-sent, and stop working if the member is deactivated first.
+- Invite and accept endpoints are rate-limited; error messages are uniform
+  so a token can't be probed for validity.
 
 ## 8. Media storage
 
@@ -297,6 +362,73 @@ psql — never automatically.
 Media works fully offline — `STORAGE_PROVIDER=local` writes to a local
 directory; switching to R2 is an env-var change, not a code change.
 
+### Clinic administrator access
+
+The clinic workspace lives at `/clinic-admin`. There is no public admin
+or clinic sign-up: the first administrator is provisioned server-side and
+activates through a single-use invitation link.
+
+**1. Provision the first admin** (backend, from `backend/`):
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=seed \
+  -Dspring-boot.run.arguments="--carepoint.mail.provider=log \
+--carepoint.bootstrap.admin-email=faith.akinyi@sunrise.carepoint.test \
+'--carepoint.bootstrap.admin-name=Faith Akinyi' \
+--carepoint.bootstrap.clinic-slug=sunrise-family"
+```
+
+- Targets an existing clinic by slug, or creates one when given
+  `--carepoint.bootstrap.clinic-name=…` and `--carepoint.bootstrap.clinic-timezone=…`
+  (IANA, e.g. `Africa/Nairobi`).
+- With `mail.provider=log` the invitation email — including its link — is
+  printed to the backend console; with `smtp` it is actually sent.
+- Idempotent: `INVITED` → `INVITATION_PENDING` → `ALREADY_ACTIVE`. It never
+  takes a password from configuration.
+- Command-line arguments are used because the app loads `.env` as JVM
+  system properties, which take precedence over shell variables — an
+  empty `BOOTSTRAP_ADMIN_EMAIL=` line in `.env` would silently win over
+  `BOOTSTRAP_ADMIN_EMAIL=… ./mvnw …`. Setting the `BOOTSTRAP_*` values in
+  `.env` itself also works.
+
+**2. Activate and sign in** (frontend running via `npm run dev`): open the
+invitation link, choose a password, then sign in at
+`http://localhost:3000/clinic-admin`.
+
+**3. Navigate the workspace:**
+
+| Route | Purpose |
+| --- | --- |
+| `/clinic-admin` | Clinic Administrator Login (password visibility toggle, forgot-password, link back to the public site) |
+| `/clinic-admin/overview` | Today's appointments, last 30 days, doctor utilisation, staff summary, clinic settings, recent staff activity |
+| `/clinic-admin/staff` | Staff directory — search, role/status filters, pagination; table on desktop, cards on mobile |
+| `/clinic-admin/staff/new` | Invite a receptionist (name, work email, optional phone; clinic is fixed to the one you manage) |
+| `/clinic-admin/staff/[membershipId]` | Staff details, invitation status, resend invitation, deactivate / reactivate |
+| `/invite/accept#token=…` | Invitee sets their password — the only way staff accounts are activated |
+
+The sidebar collapses to a menu below 1024 px. Sessions end after the
+idle timeout, and an admin who administers several clinics gets a clinic
+switcher.
+
+**API used by the workspace** (all under `/api/v1`, all clinic-scoped
+endpoints authorised server-side against the caller's membership):
+
+| Method & path | Who | Notes |
+| --- | --- | --- |
+| `POST /auth/clinic-admin/login` | public, rate-limited | session only for an active `CLINIC_ADMIN` |
+| `GET /clinics/{id}/admin/overview` | `CLINIC_ADMIN` | clinic info + staff aggregates |
+| `GET /clinics/{id}/admin/activity?page&size` | `CLINIC_ADMIN` | audit feed, max 50 per page |
+| `GET /clinics/{id}/reports/summary?from&to` | `CLINIC_ADMIN`, `RECEPTIONIST` | appointment and utilisation figures |
+| `GET /clinics/{id}/staff?q&role&status&page&size` | `CLINIC_ADMIN`, `RECEPTIONIST` | paginated, single-query listing |
+| `GET /clinics/{id}/staff/{membershipId}` | `CLINIC_ADMIN` | staff details |
+| `POST /clinics/{id}/staff` | `CLINIC_ADMIN`, rate-limited | create account + send invitation |
+| `POST /clinics/{id}/staff/{membershipId}/invitation` | `CLINIC_ADMIN`, rate-limited | resend (revokes the old link) |
+| `PATCH /clinics/{id}/staff/{membershipId}` | `CLINIC_ADMIN` | `status` ACTIVE/DISABLED (and `role`); never your own; never the last admin |
+| `POST /invitations/preview` · `POST /invitations/accept` | public, rate-limited | token in the body only |
+
+The Postman collection in `postman/` has ready-made requests for all of
+these under **Clinic admin workspace** and **Staff invitations (public)**.
+
 ## 10. Environment variables
 
 | Variable | Purpose | Example |
@@ -309,6 +441,9 @@ directory; switching to R2 is an env-var change, not a code change.
 | `R2_*` | bucket, keys, public base URL — **server only** | `<from provider>` |
 | `LOCAL_STORAGE_DIR` | dev media root | `./var/media` |
 | `SPRING_PROFILES_ACTIVE` | `local` / `ci` / `staging` / `prod` | `local` |
+| `FRONTEND_BASE_URL` | origin used in invitation links | `http://localhost:3000` |
+| `STAFF_INVITATION_TTL` | staff invitation lifetime | `72h` |
+| `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_CLINIC_*` | one-time first-admin provisioning — **server only** | *(unset)* |
 
 `.env` is gitignored; `.env.example` carries names and placeholders only.
 No real credentials are ever committed.
@@ -369,11 +504,18 @@ configuration review first.
 | Uploads fail locally | `STORAGE_PROVIDER` should be `local` |
 | `FATAL: too many connections` | `DB_POOL_MAX` above the DB provider's limit |
 | Availability wrong around DST | clinic timezone misconfigured — slots compute in clinic-local time |
+| Bootstrap env vars seem ignored | `.env` entries (even empty ones) override shell variables — pass `--carepoint.bootstrap.*` via `-Dspring-boot.run.arguments` or set them in `.env` |
+| Bootstrap logs `INVITATION_PENDING` but no link | an unused link was already issued — sign in as another admin and use **Resend invitation**, or wait for it to expire (72 h) and restart |
+| "Invitation unavailable" on the accept page | link already used, expired, re-sent, or the member was deactivated — ask an admin to resend |
+| Clinic admin login says "does not have clinic administrator access" | account is a patient/receptionist/doctor, the admin membership is deactivated, or the clinic is suspended |
 
 ## 15. Roadmap and known limitations
 
 **Delivered:** scaffold + CI (M0) · core schema, fictional seed and the
-concurrency test harness (M1). **Next:** auth → discovery → availability →
+concurrency test harness (M1) · clinic administrator workspace — portal
+sign-in, staff directory, receptionist invitations, access control and
+staff audit trail. **Next:** receptionist sign-in and desk UI on top of the
+admin foundation, then auth → discovery → availability →
 booking → schedules + media → receptionist desk → reporting → hardening.
 Small PRs, each with acceptance criteria and tests.
 
@@ -382,6 +524,12 @@ Small PRs, each with acceptance criteria and tests.
 - Demo hosting sleeps/pauses — a free-tier reality, not a bug.
 - Single-region, single-instance; rate limits are per-instance.
 - Reports are aggregates only; no data export.
+- The admin UI invites receptionists only; doctor onboarding, role changes,
+  clinic-settings editing and logo uploads exist at the API level or are
+  planned, not yet in the workspace UI.
+- Inviting an email that already has a CarePoint account grants the staff
+  role immediately; accepting the invitation (re)sets that account's
+  password — equivalent to a password reset by the inbox owner.
 - Tenant isolation is enforced in schema + service + tests; Postgres
   row-level security is a documented upgrade path.
 - Fictional data only; not assessed or certified for real patient data.

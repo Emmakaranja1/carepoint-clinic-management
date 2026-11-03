@@ -36,6 +36,7 @@ interface RequestOptions {
 
 const CREDENTIAL_PATHS = new Set([
   "/auth/login",
+  "/auth/clinic-admin/login",
   "/auth/register",
   "/auth/google",
   "/auth/refresh",

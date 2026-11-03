@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
-type IconProps = { className?: string };
+export type IconProps = { className?: string };
 
-function Icon({ className = "h-5 w-5", children }: IconProps & { children: ReactNode }) {
+export function Icon({ className = "h-5 w-5", children }: IconProps & { children: ReactNode }) {
   return (
     <svg
       viewBox="0 0 24 24"

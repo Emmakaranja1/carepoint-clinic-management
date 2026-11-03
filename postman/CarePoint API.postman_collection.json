@@ -21,6 +21,34 @@
     {
       "key": "otpCode",
       "value": "paste-6-digit-code-here"
+    },
+    {
+      "key": "adminEmail",
+      "value": "faith.akinyi@sunrise.carepoint.test"
+    },
+    {
+      "key": "adminPassword",
+      "value": ""
+    },
+    {
+      "key": "clinicId",
+      "value": "20000000-0000-4000-8000-000000000001"
+    },
+    {
+      "key": "otherClinicId",
+      "value": "20000000-0000-4000-8000-000000000002"
+    },
+    {
+      "key": "receptionistEmail",
+      "value": "reception.demo@sunrise.carepoint.test"
+    },
+    {
+      "key": "membershipId",
+      "value": ""
+    },
+    {
+      "key": "inviteToken",
+      "value": ""
     }
   ],
   "item": [
@@ -662,7 +690,7 @@
       "name": "Clinics & staff",
       "item": [
         {
-          "name": "Create clinic",
+          "name": "Create clinic \u2014 removed (405)",
           "request": {
             "method": "POST",
             "header": [
@@ -680,7 +708,7 @@
               "raw": "{\n  \"name\": \"Demo Dental Practice\",\n  \"timezone\": \"Africa/Nairobi\",\n  \"address\": {\"line1\": \"12 Kenyatta Ave\", \"city\": \"Nairobi\"}\n}"
             },
             "url": "{{baseUrl}}/api/v1/clinics",
-            "description": "Expected: 201 + {id, name, slug, timezone, message}. The verified caller becomes CLINIC_ADMIN.\nSaves clinicId for the requests below. Requires a verified login first."
+            "description": "Public clinic creation was removed: any user could make themselves CLINIC_ADMIN.\nClinics and first admins are provisioned server-side (BOOTSTRAP_ADMIN_EMAIL + BOOTSTRAP_CLINIC_SLUG, see README).\nExpected: 405 METHOD_NOT_ALLOWED."
           },
           "event": [
             {
@@ -688,12 +716,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"status is 201\", function () {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "pm.test(\"clinicId saved for follow-ups\", function () {",
-                  "    var b = pm.response.json();",
-                  "    pm.collectionVariables.set('clinicId', b.id);",
+                  "pm.test(\"status is 405\", function () {",
+                  "    pm.response.to.have.status(405);",
                   "});"
                 ]
               }
@@ -727,8 +751,8 @@
           "name": "List clinic staff",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff",
-            "description": "Expected: 200 + staff array (CLINIC_ADMIN/RECEPTIONIST only).\nRun Create clinic first \u2014 uses {{clinicId}}."
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff?q=&role=&status=&page=0&size=20",
+            "description": "Expected: 200 + {content:[StaffMember], page, size, totalElements}. Filters: q (name/email), role, status (ACTIVE|DISABLED). Max size 50.\nCLINIC_ADMIN and RECEPTIONIST may list; patient \u2192 403; other clinic \u2192 404."
           },
           "event": [
             {
@@ -739,9 +763,8 @@
                   "pm.test(\"status is 200\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
-                  "pm.test(\"first member is admin\", function () {",
-                  "    var s = pm.response.json();",
-                  "    pm.expect(s.length).to.be.above(0);",
+                  "pm.test(\"paged response\", function () {",
+                  "    pm.expect(pm.response.json().content).to.be.an('array');",
                   "});"
                 ]
               }
@@ -768,7 +791,7 @@
               "raw": "{\n  \"email\": \"doctor.demo@carepoint.test\",\n  \"fullName\": \"Dr Demo\",\n  \"role\": \"DOCTOR\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff",
-            "description": "Expected: 201 + StaffView. New emails get a set-password OTP by mail; existing users gain the membership.\nRoles: DOCTOR | RECEPTIONIST | CLINIC_ADMIN. Saves membershipId for PATCH below."
+            "description": "Expected: 201 + StaffMember. The invitee receives a single-use set-password link (72 h) \u2014 no OTP.\nRoles accepted by the API: DOCTOR | RECEPTIONIST | CLINIC_ADMIN (the admin UI offers Receptionist only). Saves membershipId."
           },
           "event": [
             {
@@ -890,6 +913,556 @@
                 "exec": [
                   "pm.test(\"status is 200\", function () {",
                   "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Clinic admin workspace",
+      "item": [
+        {
+          "name": "Clinic admin login",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/clinic-admin/login",
+            "description": "Portal sign-in for clinic administrators (/clinic-admin).\nExpected: 200 + user JSON + cp_access/cp_refresh cookies. Saves clinicId = the clinic where you are CLINIC_ADMIN.\n403 ACCESS_DENIED (no cookies) for patients, receptionists, doctors, deactivated admins and suspended clinics; 401 INVALID_CREDENTIALS for a wrong password.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"clinicId saved (CLINIC_ADMIN clinic)\", function () {",
+                  "    var roles = pm.response.json().clinicRoles;",
+                  "    var id = Object.keys(roles).find(function (k) { return roles[k] === 'CLINIC_ADMIN'; });",
+                  "    pm.expect(id).to.be.a('string');",
+                  "    pm.collectionVariables.set('clinicId', id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Clinic admin login \u2014 wrong password (401)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/clinic-admin/login",
+            "description": "Expected: 401 INVALID_CREDENTIALS \u2014 same generic message whether or not the email exists.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"Wrong-Password-1\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"generic error\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql('INVALID_CREDENTIALS');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Clinic admin login \u2014 patient account (403)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/auth/clinic-admin/login",
+            "description": "Uses the patient credentials. Expected: 403 ACCESS_DENIED and NO Set-Cookie header.\nRun 'Clinic admin login' again afterwards to restore the admin session.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{patientEmail}}\",\n  \"password\": \"{{patientPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "pm.test(\"no session issued\", function () {",
+                  "    pm.expect(pm.response.headers.has('Set-Cookie')).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Admin overview",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/admin/overview",
+            "description": "Expected: 200 + {clinic:{id,name,slug,timezone,cancellationCutoffHours,slotLookaheadDays,status}, staff:{total,active,disabled,pendingInvitations,activeByRole}}.\nCLINIC_ADMIN only \u2014 receptionist/patient \u2192 403, other clinic \u2192 404."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Admin overview \u2014 other clinic (404)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/clinics/{{otherClinicId}}/admin/overview",
+            "description": "otherClinicId defaults to the seeded Harbourview clinic. Expected: 404 NOT_FOUND \u2014 another clinic's existence is never leaked."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Staff activity (audit trail)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/admin/activity?page=0&size=20",
+            "description": "Expected: 200 + {content:[{id,action,occurredAt,actorName,targetName,actorIsTarget,role,from,to}], page, size, totalElements}.\nActions: STAFF_ADDED, STAFF_INVITATION_SENT, STAFF_INVITATION_ACCEPTED, STAFF_ROLE_CHANGED, STAFF_STATUS_CHANGED, CLINIC_ADMIN_PROVISIONED. Max size 50."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get staff member",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff/{{membershipId}}",
+            "description": "Expected: 200 + StaffMember {membershipId,userId,email,fullName,phone,role,status,invitation(ACCEPTED|PENDING|EXPIRED|NONE),invitationExpiresAt,joinedAt}. Admin only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Invite receptionist",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff",
+            "description": "Creates the account + membership and emails a single-use invitation link (72 h). The clinic comes from the path only \u2014 a clinicId in the body is ignored.\nExpected: 201 + StaffMember with invitation=PENDING. Saves membershipId.\nWith MAIL_PROVIDER=log the link is printed in the backend console: copy the part after '#token=' into the inviteToken variable.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Grace Wambui\",\n  \"email\": \"{{receptionistEmail}}\",\n  \"phone\": \"+254700000020\",\n  \"role\": \"RECEPTIONIST\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"membershipId saved, invitation pending\", function () {",
+                  "    var b = pm.response.json();",
+                  "    pm.expect(b.invitation).to.eql('PENDING');",
+                  "    pm.collectionVariables.set('membershipId', b.membershipId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Invite \u2014 invalid input (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff",
+            "description": "Expected: 400 VALIDATION_FAILED with field errors for email, fullName, phone (must be +E.164).",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"\",\n  \"email\": \"not-an-email\",\n  \"phone\": \"0712345678\",\n  \"role\": \"RECEPTIONIST\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test(\"field errors\", function () {",
+                  "    var f = pm.response.json().fields;",
+                  "    pm.expect(f).to.have.property('email');",
+                  "    pm.expect(f).to.have.property('phone');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Invite \u2014 duplicate member (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff",
+            "description": "Run after 'Invite receptionist'. Expected: 400 with fields.email = already a member.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Grace Wambui\",\n  \"email\": \"{{receptionistEmail}}\",\n  \"role\": \"RECEPTIONIST\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Resend invitation",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff/{{membershipId}}/invitation",
+            "description": "Revokes the previous link and emails a fresh one. Expected: 204. After the invitation has been accepted \u2192 400 (fields.membership).",
+            "header": [
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Deactivate staff member",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff/{{membershipId}}",
+            "description": "Expected: 200 + status=DISABLED. Takes effect on the member's very next request. Changing your own membership \u2192 400; removing the last admin \u2192 400.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DISABLED\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"disabled\", function () {",
+                  "    pm.expect(pm.response.json().status).to.eql('DISABLED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Reactivate staff member",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/v1/clinics/{{clinicId}}/staff/{{membershipId}}",
+            "description": "Expected: 200 + status=ACTIVE.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Staff invitations (public)",
+      "item": [
+        {
+          "name": "Preview invitation",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/invitations/preview",
+            "description": "Public, rate-limited. Token travels in the body only (never the URL).\nExpected: 200 + {clinicName,email,fullName,role,expiresAt}; 400 INVITATION_INVALID if unknown, expired, revoked, used, or the member was deactivated.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{inviteToken}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Accept invitation (set password)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/invitations/accept",
+            "description": "Sets the password, activates the account, consumes the token and revokes any existing sessions for that user.\nExpected: 204. Password policy: \u22658 chars, upper, lower, digit.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{inviteToken}}\",\n  \"password\": \"Receptionist-Demo-1\",\n  \"confirmPassword\": \"Receptionist-Demo-1\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Accept invitation again (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/invitations/accept",
+            "description": "Tokens are single-use. Expected: 400 INVITATION_INVALID.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Requested-With",
+                "value": "XMLHttpRequest"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{inviteToken}}\",\n  \"password\": \"Receptionist-Demo-1\",\n  \"confirmPassword\": \"Receptionist-Demo-1\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test(\"invitation invalid\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql('INVITATION_INVALID');",
                   "});"
                 ]
               }

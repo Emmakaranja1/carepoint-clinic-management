@@ -95,13 +95,28 @@ public class AuthService {
     }
 
     public AuthResult login(String email, String password) {
-        User user = users.findByEmail(email)
+        return authResultFor(verifyCredentials(email, password), null);
+    }
+
+    /**
+     * Clinic-admin portal sign-in: no session is issued unless the account
+     * holds an active CLINIC_ADMIN membership at an active clinic.
+     */
+    public AuthResult clinicAdminLogin(String email, String password) {
+        User user = verifyCredentials(email, password);
+        if (!memberships.hasActiveAdminMembership(user.getId())) {
+            throw new ApiException(ErrorCode.ACCESS_DENIED,
+                    "This account does not have clinic administrator access");
+        }
+        return authResultFor(user, null);
+    }
+
+    private User verifyCredentials(String email, String password) {
+        return users.findByEmail(email)
                 .filter(User::isActive)
                 .filter(u -> u.getPasswordHash() != null)
                 .filter(u -> passwords.matches(password, u.getPasswordHash()))
                 .orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password"));
-
-        return authResultFor(user, null);
     }
 
     public void resendCode(String email, String purpose) {

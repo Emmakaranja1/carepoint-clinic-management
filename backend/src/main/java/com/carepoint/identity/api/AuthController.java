@@ -90,6 +90,14 @@ public class AuthController {
         return session(auth.login(req.email(), req.password()));
     }
 
+    @PostMapping("/clinic-admin/login")
+    public ResponseEntity<UserResponse> clinicAdminLogin(@Valid @RequestBody LoginRequest req,
+                                                         HttpServletRequest request) {
+        AuthService.AuthResult result = auth.clinicAdminLogin(req.email(), req.password());
+        cookies.refreshToken(request).ifPresent(auth::logout);
+        return session(result);
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<Void> refresh(HttpServletRequest request) {
         String presented = cookies.refreshToken(request)

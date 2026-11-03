@@ -1,9 +1,6 @@
 package com.carepoint.booking;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -17,14 +14,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import jakarta.servlet.http.Cookie;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,7 +35,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.carepoint.catalog.domain.Specialty;
 import com.carepoint.catalog.persistence.SpecialtyRepository;
+import com.carepoint.clinic.application.ClinicProvisioningService;
 import com.carepoint.common.mail.MailService;
+import com.carepoint.identity.persistence.ClinicMembershipRepository;
+import com.carepoint.support.StaffFixtures;
 import com.carepoint.identity.persistence.UserRepository;
 
 /** Receptionist desk + doctor agenda (docs/01 §5.6 US-R1..R3, US-S3). */
@@ -52,12 +49,12 @@ import com.carepoint.identity.persistence.UserRepository;
         "carepoint.rate-limit.login-per-minute=1000",
         "carepoint.rate-limit.register-per-minute=1000",
         "carepoint.rate-limit.otp-per-minute=1000",
+        "carepoint.rate-limit.staff-invite-per-minute=1000",
         "carepoint.rate-limit.availability-per-minute=1000",
         "carepoint.rate-limit.booking-per-minute=1000"})
 class DeskIT {
 
     private static final String PASSWORD = "Correct-Horse-9";
-    private static final Pattern CODE_IN_BODY = Pattern.compile("is: (\\d{6})");
     private static final LocalDate MONDAY = LocalDate.now(ZoneOffset.UTC)
             .plusWeeks(1).with(DayOfWeek.MONDAY);
 
@@ -67,6 +64,12 @@ class DeskIT {
 
     @Autowired
     MockMvc mvc;
+
+    @Autowired
+    ClinicProvisioningService provisioning;
+
+    @Autowired
+    ClinicMembershipRepository memberships;
 
     @Autowired
     SpecialtyRepository specialties;
@@ -509,13 +512,7 @@ class DeskIT {
     }
 
     private String createClinicAs(Cookie access) throws Exception {
-        MvcResult r = mvc.perform(post("/api/v1/clinics").cookie(access)
-                        .header("X-Requested-With", "XMLHttpRequest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Clinic %s\",\"timezone\":\"UTC\"}".formatted(sfx())))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return jsonField(r.getResponse().getContentAsString(), "id");
+        return StaffFixtures.createClinicAs(mvc, provisioning, memberships, access);
     }
 
     private String invite(String clinicId, Cookie admin, String email, String role) throws Exception {
@@ -546,14 +543,7 @@ class DeskIT {
     }
 
     private Cookie loginAfterInvite(String email) throws Exception {
-        String code = lastCodeSentTo(email);
-        mvc.perform(post("/api/v1/auth/reset-password")
-                        .header("X-Requested-With", "XMLHttpRequest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                        {"email":"%s","code":"%s","password":"%s","confirmPassword":"%s"}
-                        """.formatted(email, code, PASSWORD, PASSWORD)))
-                .andExpect(status().isNoContent());
+        StaffFixtures.acceptInvite(mvc, mail, email);
         MvcResult login = mvc.perform(post("/api/v1/auth/login")
                         .header("X-Requested-With", "XMLHttpRequest")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -563,14 +553,6 @@ class DeskIT {
         return new Cookie("cp_access", cookieValue(login, "cp_access"));
     }
 
-    private String lastCodeSentTo(String email) {
-        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(mail, atLeastOnce()).send(eq(email), anyString(), body.capture());
-        String last = body.getAllValues().get(body.getAllValues().size() - 1);
-        Matcher m = CODE_IN_BODY.matcher(last);
-        assertThat(m.find()).as("OTP present in mail body").isTrue();
-        return m.group(1);
-    }
 
     private String jsonField(String json, String field) {
         return json.replaceAll(".*\"" + field + "\":\"([^\"]+)\".*", "$1");

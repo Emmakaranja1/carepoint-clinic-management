@@ -1,10 +1,6 @@
 package com.carepoint.booking;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -23,14 +19,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import jakarta.servlet.http.Cookie;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -47,7 +40,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.carepoint.catalog.domain.Specialty;
 import com.carepoint.catalog.persistence.SpecialtyRepository;
+import com.carepoint.clinic.application.ClinicProvisioningService;
 import com.carepoint.common.mail.MailService;
+import com.carepoint.identity.persistence.ClinicMembershipRepository;
+import com.carepoint.support.StaffFixtures;
 import com.carepoint.identity.persistence.UserRepository;
 
 /**
@@ -62,12 +58,12 @@ import com.carepoint.identity.persistence.UserRepository;
         "carepoint.rate-limit.login-per-minute=1000",
         "carepoint.rate-limit.register-per-minute=1000",
         "carepoint.rate-limit.otp-per-minute=1000",
+        "carepoint.rate-limit.staff-invite-per-minute=1000",
         "carepoint.rate-limit.availability-per-minute=1000",
         "carepoint.rate-limit.booking-per-minute=1000"})
 class BookingIT {
 
     private static final String PASSWORD = "Correct-Horse-9";
-    private static final Pattern CODE_IN_BODY = Pattern.compile("is: (\\d{6})");
     private static final LocalDate MONDAY = LocalDate.now(ZoneOffset.UTC)
             .plusWeeks(1).with(DayOfWeek.MONDAY);
 
@@ -77,6 +73,12 @@ class BookingIT {
 
     @Autowired
     MockMvc mvc;
+
+    @Autowired
+    ClinicProvisioningService provisioning;
+
+    @Autowired
+    ClinicMembershipRepository memberships;
 
     @Autowired
     SpecialtyRepository specialties;
@@ -445,15 +447,7 @@ class BookingIT {
     }
 
     private String createClinicAs(Cookie access) throws Exception {
-        MvcResult r = mvc.perform(post("/api/v1/clinics")
-                        .cookie(access)
-                        .header("X-Requested-With", "XMLHttpRequest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format(
-                                "{\"name\":\"Clinic %s\",\"timezone\":\"UTC\"}", sfx())))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return jsonField(r.getResponse().getContentAsString(), "id");
+        return StaffFixtures.createClinicAs(mvc, provisioning, memberships, access);
     }
 
     private String invite(String clinicId, Cookie admin, String email, String role) throws Exception {
@@ -483,14 +477,6 @@ class BookingIT {
         return jsonField(r.getResponse().getContentAsString(), "id");
     }
 
-    private String lastCodeSentTo(String email) {
-        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(mail, atLeastOnce()).send(eq(email), anyString(), body.capture());
-        String last = body.getAllValues().get(body.getAllValues().size() - 1);
-        Matcher m = CODE_IN_BODY.matcher(last);
-        assertThat(m.find()).as("OTP present in mail body").isTrue();
-        return m.group(1);
-    }
 
     private String jsonField(String json, String field) {
         return json.replaceAll(".*\"" + field + "\":\"([^\"]+)\".*", "$1");

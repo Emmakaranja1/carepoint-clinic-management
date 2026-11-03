@@ -51,6 +51,16 @@ carepoint:
     availability-per-minute: ${RATE_LIMIT_AVAILABILITY_PER_MIN:60}
     booking-per-minute: ${RATE_LIMIT_BOOKING_PER_MIN:10}
     media-upload-per-minute: ${RATE_LIMIT_MEDIA_UPLOAD_PER_MIN:20}
+    staff-invite-per-minute: ${RATE_LIMIT_STAFF_INVITE_PER_MIN:20}
+  invitations:
+    ttl: ${STAFF_INVITATION_TTL:72h}
+  # first clinic admin — set only in the server environment, see README "Clinic administrator access"
+  bootstrap:
+    admin-email: ${BOOTSTRAP_ADMIN_EMAIL:}
+    admin-name: ${BOOTSTRAP_ADMIN_NAME:}
+    clinic-slug: ${BOOTSTRAP_CLINIC_SLUG:}
+    clinic-name: ${BOOTSTRAP_CLINIC_NAME:}
+    clinic-timezone: ${BOOTSTRAP_CLINIC_TIMEZONE:}
   otp:
     ttl: ${OTP_TTL:2m}
     max-attempts: ${OTP_MAX_ATTEMPTS:4}
@@ -61,6 +71,7 @@ carepoint:
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
   app-base-url: ${APP_BASE_URL:http://localhost:8080}
+  frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
   storage:
     
     provider: ${STORAGE_PROVIDER:local}
