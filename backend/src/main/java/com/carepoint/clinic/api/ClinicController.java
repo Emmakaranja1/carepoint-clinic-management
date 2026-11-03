@@ -14,14 +14,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.carepoint.clinic.api.dto.ClinicResponse;
-import com.carepoint.clinic.api.dto.CreateClinicRequest;
 import com.carepoint.clinic.api.dto.InviteStaffRequest;
 import com.carepoint.clinic.api.dto.UpdateStaffRequest;
+import com.carepoint.clinic.application.ClinicAdminService;
 import com.carepoint.clinic.application.ClinicService;
-import com.carepoint.clinic.domain.Clinic;
+import com.carepoint.clinic.application.StaffDirectory;
+import com.carepoint.clinic.application.StaffInvitationService;
 import com.carepoint.common.security.CarepointPrincipal;
 
 @RestController
@@ -29,20 +30,16 @@ import com.carepoint.common.security.CarepointPrincipal;
 public class ClinicController {
 
     private final ClinicService clinics;
+    private final StaffDirectory directory;
+    private final StaffInvitationService invitations;
+    private final ClinicAdminService admin;
 
-    public ClinicController(ClinicService clinics) {
+    public ClinicController(ClinicService clinics, StaffDirectory directory,
+                            StaffInvitationService invitations, ClinicAdminService admin) {
         this.clinics = clinics;
-    }
-
-    @PostMapping
-    public ResponseEntity<ClinicResponse> create(
-            @AuthenticationPrincipal CarepointPrincipal principal,
-            @Valid @RequestBody CreateClinicRequest req) {
-        Clinic clinic = clinics.create(principal, req.name(), req.timezone(), req.address());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ClinicResponse(clinic.getId(), clinic.getName(),
-                        clinic.getSlug(), clinic.getTimezone(),
-                        "Clinic created — you are its clinic admin"));
+        this.directory = directory;
+        this.invitations = invitations;
+        this.admin = admin;
     }
 
     @GetMapping("/mine")
@@ -51,15 +48,44 @@ public class ClinicController {
         return clinics.myClinics(principal);
     }
 
-    @GetMapping("/{clinicId}/staff")
-    public List<ClinicService.StaffView> listStaff(
+    @GetMapping("/{clinicId}/admin/overview")
+    public ClinicAdminService.Overview overview(
             @AuthenticationPrincipal CarepointPrincipal principal,
             @PathVariable UUID clinicId) {
-        return clinics.listStaff(principal, clinicId);
+        return admin.overview(principal, clinicId);
+    }
+
+    @GetMapping("/{clinicId}/admin/activity")
+    public ClinicAdminService.ActivityPage activity(
+            @AuthenticationPrincipal CarepointPrincipal principal,
+            @PathVariable UUID clinicId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return admin.activity(principal, clinicId, page, size);
+    }
+
+    @GetMapping("/{clinicId}/staff")
+    public StaffDirectory.StaffPage listStaff(
+            @AuthenticationPrincipal CarepointPrincipal principal,
+            @PathVariable UUID clinicId,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return directory.list(principal, clinicId, role, status, q, page, size);
+    }
+
+    @GetMapping("/{clinicId}/staff/{membershipId}")
+    public StaffDirectory.StaffMember getStaff(
+            @AuthenticationPrincipal CarepointPrincipal principal,
+            @PathVariable UUID clinicId,
+            @PathVariable UUID membershipId) {
+        return directory.get(principal, clinicId, membershipId);
     }
 
     @PostMapping("/{clinicId}/staff")
-    public ResponseEntity<ClinicService.StaffView> inviteStaff(
+    public ResponseEntity<StaffDirectory.StaffMember> inviteStaff(
             @AuthenticationPrincipal CarepointPrincipal principal,
             @PathVariable UUID clinicId,
             @Valid @RequestBody InviteStaffRequest req) {
@@ -68,8 +94,17 @@ public class ClinicController {
                         req.email(), req.fullName(), req.role(), req.phone()));
     }
 
+    @PostMapping("/{clinicId}/staff/{membershipId}/invitation")
+    public ResponseEntity<Void> resendInvitation(
+            @AuthenticationPrincipal CarepointPrincipal principal,
+            @PathVariable UUID clinicId,
+            @PathVariable UUID membershipId) {
+        invitations.resend(principal, clinicId, membershipId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{clinicId}/staff/{membershipId}")
-    public ClinicService.StaffView updateStaff(
+    public StaffDirectory.StaffMember updateStaff(
             @AuthenticationPrincipal CarepointPrincipal principal,
             @PathVariable UUID clinicId,
             @PathVariable UUID membershipId,

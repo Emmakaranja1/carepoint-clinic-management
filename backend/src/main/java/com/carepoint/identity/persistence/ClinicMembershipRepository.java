@@ -1,7 +1,6 @@
 package com.carepoint.identity.persistence;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,9 +13,7 @@ public interface ClinicMembershipRepository extends JpaRepository<ClinicMembersh
 
     List<ClinicMembership> findByUserIdAndStatus(UUID userId, String status);
 
-    Optional<ClinicMembership> findByUserIdAndClinicId(UUID userId, UUID clinicId);
-
-    List<ClinicMembership> findByClinicId(UUID clinicId);
+    List<ClinicMembership> findByClinicIdAndUserId(UUID clinicId, UUID userId);
 
     long countByClinicIdAndRoleAndStatus(UUID clinicId, String role, String status);
 

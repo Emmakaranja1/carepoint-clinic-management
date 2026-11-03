@@ -50,11 +50,16 @@ public class SecurityConfig {
             @Value("${carepoint.rate-limit.otp-per-minute}") int otpLimit,
             @Value("${carepoint.rate-limit.availability-per-minute}") int availabilityLimit,
             @Value("${carepoint.rate-limit.booking-per-minute}") int bookingLimit,
-            @Value("${carepoint.rate-limit.media-upload-per-minute}") int mediaLimit) throws Exception {
+            @Value("${carepoint.rate-limit.media-upload-per-minute}") int mediaLimit,
+            @Value("${carepoint.rate-limit.staff-invite-per-minute}") int staffInviteLimit) throws Exception {
 
         RateLimitFilter rateLimits = new RateLimitFilter(List.of(
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/login", loginLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/clinic-admin/login", loginLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/invitations/preview", otpLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/invitations/accept", otpLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/clinics/*/staff", staffInviteLimit),
+                new RateLimitFilter.Rule("POST", "/api/v1/clinics/*/staff/*/invitation", staffInviteLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/change-password", loginLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/register", registerLimit),
                 new RateLimitFilter.Rule("POST", "/api/v1/auth/forgot-password", otpLimit),
@@ -78,6 +83,8 @@ public class SecurityConfig {
                         "/api/v1/auth/register",
                         "/api/v1/auth/login",
                         "/api/v1/auth/clinic-admin/login",
+                        "/api/v1/invitations/preview",
+                        "/api/v1/invitations/accept",
                         "/api/v1/auth/refresh",
                         "/api/v1/auth/logout",
                         "/api/v1/auth/verify-email",
