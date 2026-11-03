@@ -82,6 +82,14 @@ isolation treated as headline engineering properties, not afterthoughts**.
   their own password; admins never see or share one
 - 🧾 Audit trail of every staff change, shown as a recent-activity feed
 
+**Receptionist workspace** *(implemented — `/staff/login` and `/staff/[clinicId]/agenda`)*:
+
+- 🔐 Dedicated receptionist sign-in, separate from patient and clinic-admin flows
+- 📅 Front-desk agenda for the selected clinic with doctor/status filtering
+- 🧾 Walk-in and phone bookings created on behalf of the patient by staff
+- 🔁 Reschedule and status transitions for `BOOKED`, `COMPLETED`, `NO_SHOW`, and `CANCELLED`
+- 🧭 Role-aware routing: users land in the correct workspace based on their `clinicRoles`
+
 <table>
   <tr>
     <td width="50%"><img src="assets/screenshots/clinic-admin-login.png" alt="CarePoint Clinic Administrator Login page: brand panel on the left, work email and password form on the right"></td>
@@ -417,6 +425,8 @@ invitation link, choose a password, then sign in at
 | `/clinic-admin/staff` | Staff directory — search, role/status filters, pagination; table on desktop, cards on mobile |
 | `/clinic-admin/staff/new` | Invite a receptionist (name, work email, optional phone; clinic is fixed to the one you manage) |
 | `/clinic-admin/staff/[membershipId]` | Staff details, invitation status, resend invitation, deactivate / reactivate |
+| `/staff/login` | Receptionist Login — staff-only entry point, no admin navigation on the page |
+| `/staff/[clinicId]/agenda` | Front desk agenda — today’s appointments, filters, booking on behalf, status transitions |
 | `/invite/accept#token=…` | Invitee sets their password — the only way staff accounts are activated |
 
 The sidebar collapses to a menu below 1024 px. Sessions end after the
@@ -527,9 +537,9 @@ configuration review first.
 **Delivered:** scaffold + CI (M0) · core schema, fictional seed and the
 concurrency test harness (M1) · clinic administrator workspace — portal
 sign-in, staff directory, receptionist invitations, access control and
-staff audit trail. **Next:** receptionist sign-in and desk UI on top of the
-admin foundation, then auth → discovery → availability →
-booking → schedules + media → receptionist desk → reporting → hardening.
+staff audit trail. **Implemented:** receptionist sign-in and desk UI on top of the
+admin foundation; role-aware redirects for `CLINIC_ADMIN`, `RECEPTIONIST`, and
+patient users; clinic-scoped agenda, booking-on-behalf and status updates.
 Small PRs, each with acceptance criteria and tests.
 
 **Known limitations (deliberate):**

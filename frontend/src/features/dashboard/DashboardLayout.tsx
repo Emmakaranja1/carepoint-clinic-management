@@ -3,7 +3,7 @@
 import { useCallback, useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-import { useSession, type SessionUser } from "@/features/auth/session";
+import { useSession, type SessionUser, getWorkspaceHref } from "@/features/auth/session";
 import { useIdleTimeout } from "@/features/auth/useIdleTimeout";
 import { DashboardShell } from "./DashboardShell";
 import { Skeleton } from "./ui";
@@ -19,7 +19,13 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (status === "anonymous") router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-  }, [pathname, router, status]);
+    if (status === "authenticated" && user) {
+      const workspaceHref = getWorkspaceHref(user);
+      if (workspaceHref !== "/dashboard") {
+        router.replace(workspaceHref);
+      }
+    }
+  }, [pathname, router, status, user]);
 
   if (status !== "authenticated" || !user) {
     return (
