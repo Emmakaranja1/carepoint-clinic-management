@@ -10,6 +10,7 @@ import { Avatar } from "@/features/dashboard/Avatar";
 import { cardClass, EmptyState, ErrorPanel, Notice, primaryButtonClass, Skeleton } from "@/features/dashboard/ui";
 import { getAvailability, getDoctor, type DoctorSearchResult, type Slot } from "@/features/discovery/api";
 import { groupByDay, isoDate, SlotPicker, slotLabel } from "./SlotPicker";
+import { useSession } from "@/features/auth/session";
 
 const WINDOW_DAYS = 14;
 const SLOT_CONFLICTS = new Set(["SLOT_TAKEN", "INVALID_SLOT"]);
@@ -20,6 +21,7 @@ function message(e: unknown, fallback: string) {
 
 export function BookDoctor({ doctorId }: { doctorId: string }) {
   const router = useRouter();
+  const { status } = useSession();
   const [doctor, setDoctor] = useState<DoctorSearchResult | null>(null);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -57,7 +59,17 @@ export function BookDoctor({ doctorId }: { doctorId: string }) {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (status === "anonymous") {
+      router.replace(`/login?next=${encodeURIComponent(`/dashboard/doctors/${doctorId}`)}`);
+    }
+  }, [doctorId, router, status]);
+
   const days = useMemo(() => groupByDay(slots ?? []), [slots]);
+
+  if (status === "anonymous") {
+    return null;
+  }
 
   const select = (slot: Slot) => {
     setSelected(slot);

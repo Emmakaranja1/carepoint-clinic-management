@@ -100,11 +100,15 @@ export function LoginForm({ notice, next = "/dashboard" }: { notice?: string | n
         <button type="submit" className={submitClass} disabled={isSubmitting}>
           {isSubmitting ? "Signing in…" : "Sign in"}
         </button>
-        <div className="flex items-center gap-3 text-xs text-zinc-400">
-          <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-          or
-          <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-        </div>
+      </form>
+
+      <div className="mt-6 flex items-center gap-3 text-xs text-zinc-400">
+        <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        or continue with
+        <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+      </div>
+
+      <div className="mt-4">
         <GoogleButton
           onSuccess={(user) => {
             setUser(user);
@@ -112,13 +116,14 @@ export function LoginForm({ notice, next = "/dashboard" }: { notice?: string | n
           }}
           onError={setFormError}
         />
-        <p className="text-center text-sm text-zinc-500">
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className="font-semibold text-brand-500 hover:underline dark:text-brand-300">
-            Sign up
-          </Link>
-        </p>
-      </form>
+      </div>
+
+      <p className="mt-6 text-center text-sm text-zinc-500">
+        Don&apos;t have an account?{" "}
+        <Link href="/register" className="font-semibold text-brand-500 hover:underline dark:text-brand-300">
+          Sign up
+        </Link>
+      </p>
     </div>
   );
 }

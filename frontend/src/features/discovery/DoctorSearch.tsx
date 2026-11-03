@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { ApiError } from "@/lib/api";
 import { Avatar } from "@/features/dashboard/Avatar";
+import { useSession } from "@/features/auth/session";
 import {
   listSpecialties,
   searchDoctors,
@@ -24,7 +25,14 @@ function nextDate(value: string) {
   return Number.isNaN(date.getTime()) ? value : nextFormatter.format(date);
 }
 
+function getBookHref(doctorId: string, status: "loading" | "anonymous" | "authenticated") {
+  if (status === "authenticated") return `/dashboard/doctors/${doctorId}`;
+  return `/login?next=${encodeURIComponent(`/dashboard/doctors/${doctorId}`)}`;
+}
+
 function DoctorCard({ doctor }: { doctor: DoctorSearchResult }) {
+  const { status } = useSession();
+
   return (
     <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex items-start gap-4">
@@ -52,7 +60,7 @@ function DoctorCard({ doctor }: { doctor: DoctorSearchResult }) {
               {doctor.nextAvailableSlot ? `Next available ${nextDate(doctor.nextAvailableSlot)}` : "No open slots listed"}
             </span>
             <Link
-              href={`/dashboard/doctors/${doctor.doctorId}`}
+              href={getBookHref(doctor.doctorId, status)}
               className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
             >
               Book appointment

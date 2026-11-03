@@ -27,11 +27,18 @@ export function getPrimaryClinicRole(user: SessionUser | null): string | null {
 export function getWorkspaceHref(user: SessionUser | null) {
   if (!user) return "/login";
   const role = getPrimaryClinicRole(user);
-  const clinicId = Object.entries(user.clinicRoles ?? {}).find(([, value]) => value === "RECEPTIONIST" || value === "CLINIC_ADMIN")?.[0];
+  const clinicIdForRole = (targetRole: string) =>
+    Object.entries(user.clinicRoles ?? {}).find(([, value]) => value === targetRole)?.[0];
 
   if (role === "CLINIC_ADMIN") return "/clinic-admin/overview";
-  if (role === "RECEPTIONIST" && clinicId) return `/staff/${clinicId}/agenda`;
-  if (role === "DOCTOR") return "/dashboard";
+  if (role === "RECEPTIONIST") {
+    const clinicId = clinicIdForRole("RECEPTIONIST");
+    if (clinicId) return `/staff/${clinicId}/agenda`;
+  }
+  if (role === "DOCTOR") {
+    const clinicId = clinicIdForRole("DOCTOR");
+    if (clinicId) return `/doctor/${clinicId}/agenda`;
+  }
   return "/dashboard";
 }
 

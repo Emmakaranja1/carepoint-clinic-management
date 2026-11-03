@@ -38,6 +38,24 @@ export function GoogleButton({
   const [gisReady, setGisReady] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (window.google?.accounts?.id) {
+      setGisReady(true);
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      if (window.google?.accounts?.id) {
+        setGisReady(true);
+        window.clearInterval(interval);
+      }
+    }, 150);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     if (!clientId || !gisReady || !window.google || !mount.current) return;
     mount.current.replaceChildren();
     window.google.accounts.id.initialize({
@@ -54,7 +72,9 @@ export function GoogleButton({
       type: "standard",
       theme: "outline",
       size: "large",
-      width: mount.current.offsetWidth,
+      width: Math.max(mount.current.offsetWidth || 320, 320),
+      text: "continue_with",
+      logo_alignment: "left",
     });
   }, [clientId, gisReady, onSuccess, onError]);
 
@@ -67,7 +87,9 @@ export function GoogleButton({
         strategy="afterInteractive"
         onLoad={() => setGisReady(true)}
       />
-      <div ref={mount} className="flex justify-center" />
+      <div className="flex justify-center">
+        <div ref={mount} className="w-full max-w-md" />
+      </div>
     </>
   );
 }
