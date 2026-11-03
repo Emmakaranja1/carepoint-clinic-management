@@ -22,6 +22,7 @@ public enum ErrorCode {
 
     ACCESS_DENIED(HttpStatus.FORBIDDEN),
     NOT_FOUND(HttpStatus.NOT_FOUND),
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED),
 
     EMAIL_TAKEN(HttpStatus.CONFLICT),
     SLOT_TAKEN(HttpStatus.CONFLICT),
