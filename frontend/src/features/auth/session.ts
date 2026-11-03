@@ -15,6 +15,26 @@ export interface SessionUser {
   clinicRoles: Record<string, string>;
 }
 
+export function getPrimaryClinicRole(user: SessionUser | null): string | null {
+  if (!user) return null;
+  const roleSet = new Set(["CLINIC_ADMIN", "RECEPTIONIST", "DOCTOR"]);
+  for (const [clinicId, role] of Object.entries(user.clinicRoles ?? {})) {
+    if (roleSet.has(role) && clinicId) return role;
+  }
+  return null;
+}
+
+export function getWorkspaceHref(user: SessionUser | null) {
+  if (!user) return "/login";
+  const role = getPrimaryClinicRole(user);
+  const clinicId = Object.entries(user.clinicRoles ?? {}).find(([, value]) => value === "RECEPTIONIST" || value === "CLINIC_ADMIN")?.[0];
+
+  if (role === "CLINIC_ADMIN") return "/clinic-admin/overview";
+  if (role === "RECEPTIONIST" && clinicId) return `/staff/${clinicId}/agenda`;
+  if (role === "DOCTOR") return "/dashboard";
+  return "/dashboard";
+}
+
 export type SessionStatus = "loading" | "anonymous" | "authenticated";
 
 interface SessionState {

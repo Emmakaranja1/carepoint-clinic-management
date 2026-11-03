@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 
 import type { SessionUser } from "@/features/auth/session";
+import { getWorkspaceHref } from "@/features/auth/session";
 
 const links = [
   { label: "My Dashboard", href: "/dashboard" },
@@ -28,6 +29,10 @@ export function AccountMenu({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
+  const workspaceHref = getWorkspaceHref(user);
+  const linksToShow = workspaceHref === "/dashboard" ? links : [
+    { label: "My Workspace", href: workspaceHref },
+  ];
 
   useEffect(() => {
     if (!open) return;
@@ -77,7 +82,7 @@ export function AccountMenu({
             <p className="truncate text-sm font-semibold text-heading">{user.fullName}</p>
             <p className="truncate text-xs text-zinc-500">{user.email}</p>
           </div>
-          {links.map(({ label, href }) => (
+          {linksToShow.map(({ label, href }) => (
             <Link key={label} href={href} role="menuitem" className={itemClass} onClick={() => setOpen(false)}>
               {label}
             </Link>
