@@ -117,7 +117,7 @@ export function Dashboard() {
             {data.memberships.map((membership) => (
               <Link
                 key={membership.membershipId}
-                href={`/staff/${membership.clinicId}/agenda`}
+                href={membership.role === "CLINIC_ADMIN" ? "/clinic-admin/overview" : `/staff/${membership.clinicId}/agenda`}
                 className="rounded-xl bg-brand-50 px-5 py-4 hover:bg-brand-100"
               >
                 <p className="text-sm font-medium text-brand-600">{membership.role.replace("_", " ")}</p>
