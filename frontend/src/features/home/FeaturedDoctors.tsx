@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { ApiError } from "@/lib/api";
 import { Avatar } from "@/features/dashboard/Avatar";
+import { useSession } from "@/features/auth/session";
 import { Reveal } from "./Reveal";
 import { SectionHeading } from "./SectionHeading";
 import {
@@ -36,6 +37,7 @@ function BookLink({ href, compact = false }: { href: string; compact?: boolean }
 export function FeaturedDoctors() {
   const [featured, setFeatured] = useState<Featured[] | null>(null);
   const [error, setError] = useState("");
+  const { status } = useSession();
 
   useEffect(() => {
     let cancelled = false;
@@ -132,7 +134,7 @@ export function FeaturedDoctors() {
                           ? `${lead.doctor.consultMinutes} min consult`
                           : "Visit length set by clinic"}
                       </p>
-                      <BookLink href={`/dashboard/doctors/${lead.doctor.id}`} />
+                      <BookLink href={getBookHref(lead.doctor.id, status)} />
                     </div>
                   </article>
                 </Reveal>
@@ -153,7 +155,7 @@ export function FeaturedDoctors() {
                             </p>
                           </div>
                         </div>
-                        <BookLink href={`/dashboard/doctors/${item.doctor.id}`} compact />
+                        <BookLink href={getBookHref(item.doctor.id, status)} compact />
                       </article>
                     </Reveal>
                   </li>
@@ -165,4 +167,9 @@ export function FeaturedDoctors() {
       </div>
     </section>
   );
+}
+
+function getBookHref(doctorId: string, status: "loading" | "anonymous" | "authenticated") {
+  if (status === "authenticated") return `/dashboard/doctors/${doctorId}`;
+  return `/login?next=${encodeURIComponent(`/dashboard/doctors/${doctorId}`)}`;
 }

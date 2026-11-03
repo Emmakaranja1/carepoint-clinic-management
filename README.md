@@ -90,6 +90,19 @@ isolation treated as headline engineering properties, not afterthoughts**.
 - 🔁 Reschedule and status transitions for `BOOKED`, `COMPLETED`, `NO_SHOW`, and `CANCELLED`
 - 🧭 Role-aware routing: users land in the correct workspace based on their `clinicRoles`
 
+**Doctor workspace** *(implemented — `/doctor/login` and `/doctor/[clinicId]/agenda`)*:
+
+- 🔐 Dedicated doctor sign-in, separate from patient, receptionist and clinic-admin flows
+- 📅 Doctor-only agenda for the clinic membership linked to their email and role
+- 👥 Access granted only through the clinic's staff onboarding flow; the doctor sees only their assigned clinic workspace
+- 🧭 Role-aware routing: doctors land in their clinic agenda instead of the patient dashboard
+
+<div align="center">
+  <img src="assets/screenshots/doctor-dashboard.svg" alt="CarePoint doctor dashboard overview showing today's appointments, summary cards and a schedule list for a visiting physician" width="920">
+</div>
+
+<sub>Doctor dashboard preview — assigned clinic agenda with appointment summary, patient queue and next-booking views.</sub>
+
 <table>
   <tr>
     <td width="50%"><img src="assets/screenshots/clinic-admin-login.png" alt="CarePoint Clinic Administrator Login page: brand panel on the left, work email and password form on the right"></td>
@@ -167,6 +180,20 @@ journey
     section Admin
       See status change to Active: 5: Admin
       Deactivate access when needed: 4: Admin
+```
+
+```mermaid
+journey
+    title Doctor: review the day's schedule
+    section Onboarding
+      Clinic admin invites the doctor: 5: Admin
+      Doctor opens the emailed link: 4: Doctor
+      Set own password: 5: Doctor
+      Account becomes active in the clinic: 5: Doctor
+    section Workday
+      Sign in at /doctor/login: 5: Doctor
+      Open clinic-specific agenda: 5: Doctor
+      Review booked visits and patient list: 5: Doctor
 ```
 
 ## 4. Architecture
@@ -328,6 +355,27 @@ sequenceDiagram
 - Invite and accept endpoints are rate-limited; error messages are uniform
   so a token can't be probed for validity.
 
+### Doctor onboarding
+
+```mermaid
+sequenceDiagram
+    participant Admin as Clinic admin
+    participant API as Backend
+    participant DB as Postgres
+    participant Mail as Mail provider
+    participant Doctor as Invitee browser
+
+    Admin->>API: POST /clinics/{clinicId}/doctors (clinic from path, never body)
+    API->>DB: user + membership + invitation(SHA-256 of token) + audit — one transaction
+    API->>Mail: link …/invite/accept#token=… (expires in 72 h)
+    Doctor->>API: POST /invitations/accept {token, password}
+    API->>DB: lock invitation row, set Argon2id hash, consume token, revoke sessions, audit
+    API-->>Doctor: 204 — account active
+```
+
+- Same as staff, but targets the `DOCTOR` role.
+- Doctors land in their agenda after activation, no separate login flow.
+
 ## 8. Media storage
 
 Bytes live in object storage (Cloudflare R2, S3-compatible); PostgreSQL
@@ -451,6 +499,14 @@ endpoints authorised server-side against the caller's membership):
 
 The Postman collection in `postman/` has ready-made requests for all of
 these under **Clinic admin workspace** and **Staff invitations (public)**.
+
+### Doctor-specific API
+
+| Method & path | Who | Notes |
+| --- | --- | --- |
+| `POST /auth/doctor/login` | public, rate-limited | session only for an active `DOCTOR` |
+| `GET /clinics/{id}/doctor/agenda` | `DOCTOR` | clinic-specific agenda |
+| `GET /clinics/{id}/doctor/visits` | `DOCTOR` | today's visits and patient list |
 
 ## 10. Environment variables
 
