@@ -82,6 +82,19 @@ isolation treated as headline engineering properties, not afterthoughts**.
   their own password; admins never see or share one
 - 🧾 Audit trail of every staff change, shown as a recent-activity feed
 
+<table>
+  <tr>
+    <td width="50%"><img src="assets/screenshots/clinic-admin-login.png" alt="CarePoint Clinic Administrator Login page: brand panel on the left, work email and password form on the right"></td>
+    <td width="50%"><img src="assets/screenshots/clinic-admin-dashboard.png" alt="CarePoint clinic admin overview for Sunrise Family Clinic: today's appointments, last 30 days, doctor utilisation, staff summary, clinic settings and recent staff activity"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Clinic Administrator Login</b> — <code>/clinic-admin</code></sub></td>
+    <td align="center"><sub><b>Operational overview</b> — <code>/clinic-admin/overview</code></sub></td>
+  </tr>
+</table>
+
+<sub>Screenshots use fictional seed data from a throwaway demo database.</sub>
+
 **Deliberately out of scope** — *decided, not omitted:*
 
 - Medical records, diagnoses, prescriptions, clinical notes
